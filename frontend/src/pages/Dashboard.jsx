@@ -119,14 +119,14 @@ export default function Dashboard() {
 
   return (
     <Layout onNewTask={handleNewTask}>
-      <div className="min-h-full bg-[#f8fafc] p-4 sm:p-6 lg:p-8">
+      <div className="min-h-full bg-background p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-[1600px] space-y-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
                 Good morning, {meQ.isPending ? "…" : greetName}
               </h1>
-              <p className="mt-1 text-slate-500">
+              <p className="mt-1 text-muted-foreground">
                 Your team&apos;s task overview — {sprintName} · Last updated just now
               </p>
             </div>
@@ -134,9 +134,9 @@ export default function Dashboard() {
               <div className="flex flex-wrap items-center gap-2">
               <Link
                 to="/notifications"
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted"
               >
-                <Bell className="h-4 w-4 text-slate-600" />
+                <Bell className="h-4 w-4 text-muted-foreground" />
                 Notifications
                 {notifBadge != null && (
                   <Badge variant="default" className="ml-1 bg-red-500 text-white">
@@ -145,16 +145,16 @@ export default function Dashboard() {
                 )}
               </Link>
               <details className="relative">
-                <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
-                  <Download className="h-4 w-4 text-slate-600" />
+                <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm hover:bg-muted [&::-webkit-details-marker]:hidden">
+                  <Download className="h-4 w-4 text-muted-foreground" />
                   {exportBusy ? "Exporting…" : "Export"}
-                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </summary>
-                <div className="absolute right-0 z-30 mt-1 min-w-[12rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                <div className="absolute right-0 z-30 mt-1 min-w-[12rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg">
                   <button
                     type="button"
                     disabled={exportBusy}
-                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
                     onClick={(e) => {
                       const d = e.currentTarget.closest("details");
                       if (d) d.open = false;
@@ -166,7 +166,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     disabled={exportBusy}
-                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
                     onClick={(e) => {
                       const d = e.currentTarget.closest("details");
                       if (d) d.open = false;
@@ -179,28 +179,28 @@ export default function Dashboard() {
               </details>
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-xs font-bold text-[#7C3AED]">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
                   {chipLetter}
                 </span>
                 Viewing as: {me?.role ?? "Member"}
-                <ChevronDown className="h-4 w-4 text-slate-400" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
               </div>
               {exportErr && (
-                <p className="max-w-sm text-right text-xs text-red-600">{exportErr}</p>
+                <p className="max-w-sm text-right text-xs text-destructive">{exportErr}</p>
               )}
             </div>
           </div>
 
           {anyFallback && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100">
               <p>
                 <span className="font-semibold">Demo mode.</span> Some data couldn&apos;t be loaded from the API —
                 showing static placeholders until the backend is reachable.
               </p>
-              <Button variant="outline" size="sm" className="shrink-0 border-amber-300 bg-white" onClick={refetchAll}>
+              <Button variant="outline" size="sm" className="shrink-0 border-amber-500/40 bg-card" onClick={refetchAll}>
                 Retry connection
               </Button>
             </div>
@@ -280,14 +280,14 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <p className="text-center text-[11px] text-slate-400">
+          <p className="text-center text-[11px] text-muted-foreground">
             Live data from FastAPI when available:{" "}
-            <code className="rounded bg-slate-100 px-1">/dashboard/stats</code>,{" "}
-            <code className="rounded bg-slate-100 px-1">/analytics/tasks</code>,{" "}
-            <code className="rounded bg-slate-100 px-1">/activity/recent</code>,{" "}
-            <code className="rounded bg-slate-100 px-1">/boards/{boardId}</code>,{" "}
-            <code className="rounded bg-slate-100 px-1">/workspaces/{ws}/meetings</code>
-            <button type="button" onClick={refetchAll} className="ml-2 text-[#7C3AED] hover:underline">
+            <code className="rounded bg-muted px-1 text-foreground">/dashboard/stats</code>,{" "}
+            <code className="rounded bg-muted px-1 text-foreground">/analytics/tasks</code>,{" "}
+            <code className="rounded bg-muted px-1 text-foreground">/activity/recent</code>,{" "}
+            <code className="rounded bg-muted px-1 text-foreground">/boards/{boardId}</code>,{" "}
+            <code className="rounded bg-muted px-1 text-foreground">/workspaces/{ws}/meetings</code>
+            <button type="button" onClick={refetchAll} className="ml-2 text-primary hover:underline">
               Refresh all
             </button>
           </p>

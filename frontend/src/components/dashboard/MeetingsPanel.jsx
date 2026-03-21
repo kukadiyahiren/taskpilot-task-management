@@ -1,13 +1,13 @@
 import { Calendar, ChevronRight } from "lucide-react";
+import { cn } from "../../lib/utils.js";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card.jsx";
 import { Button } from "../ui/button.jsx";
-import { Badge } from "../ui/badge.jsx";
 import { Skeleton } from "../ui/skeleton.jsx";
 
 const statusMap = {
-  scheduled: { label: "Upcoming", className: "bg-blue-100 text-blue-800" },
-  live: { label: "Live", className: "bg-red-100 text-red-700" },
-  ended: { label: "Ended", className: "bg-slate-200 text-slate-600" },
+  scheduled: { label: "Upcoming", className: "bg-blue-500/15 text-blue-800 dark:text-blue-300" },
+  live: { label: "Live", className: "bg-red-500/15 text-red-800 dark:text-red-300" },
+  ended: { label: "Ended", className: "bg-muted text-muted-foreground" },
 };
 
 export function MeetingsPanel({ meetings, isLoading, isError, onRetry }) {
@@ -29,7 +29,7 @@ export function MeetingsPanel({ meetings, isLoading, isError, onRetry }) {
   if (isError) {
     return (
       <Card className="flex min-h-[200px] flex-col items-center justify-center p-8">
-        <p className="text-sm text-red-600">Could not load meetings.</p>
+        <p className="text-sm text-destructive">Could not load meetings.</p>
         <Button variant="outline" className="mt-3" onClick={onRetry}>
           Retry
         </Button>
@@ -41,7 +41,7 @@ export function MeetingsPanel({ meetings, isLoading, isError, onRetry }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Calendar className="h-5 w-5 text-[#7C3AED]" />
+          <Calendar className="h-5 w-5 text-primary" />
           Meetings
         </CardTitle>
         <Button variant="gradient" size="sm" className="font-semibold">
@@ -49,7 +49,7 @@ export function MeetingsPanel({ meetings, isLoading, isError, onRetry }) {
         </Button>
       </CardHeader>
       <CardContent className="space-y-3 pt-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">This week</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">This week</p>
         <ul className="space-y-2">
           {(meetings ?? []).map((m) => {
             const st = statusMap[m.status] ?? statusMap.scheduled;
@@ -57,19 +57,26 @@ export function MeetingsPanel({ meetings, isLoading, isError, onRetry }) {
             return (
               <li
                 key={m.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 transition hover:border-slate-200 hover:bg-white"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/40 px-4 py-3 transition hover:bg-muted/70"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge className={st.className}>{st.label}</Badge>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
+                        st.className
+                      )}
+                    >
+                      {st.label}
+                    </span>
                     {m.status === "live" && (
-                      <Button size="sm" className="h-7 bg-red-600 text-xs hover:bg-red-700">
+                      <Button size="sm" className="h-7 bg-red-600 text-xs text-white hover:bg-red-700">
                         Join Now
                       </Button>
                     )}
                   </div>
-                  <p className="mt-1 font-medium text-slate-900">{m.title}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="mt-1 font-medium text-foreground">{m.title}</p>
+                  <p className="text-xs text-muted-foreground">
                     {start.toLocaleString(undefined, {
                       weekday: "short",
                       month: "short",
@@ -82,7 +89,7 @@ export function MeetingsPanel({ meetings, isLoading, isError, onRetry }) {
                 </div>
                 <button
                   type="button"
-                  className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#7C3AED] hover:underline"
+                  className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
                 >
                   Details
                   <ChevronRight className="h-4 w-4" />
@@ -92,7 +99,7 @@ export function MeetingsPanel({ meetings, isLoading, isError, onRetry }) {
           })}
         </ul>
         {!meetings?.length && (
-          <p className="py-6 text-center text-sm text-slate-400">No meetings scheduled.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">No meetings scheduled.</p>
         )}
       </CardContent>
     </Card>

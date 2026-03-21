@@ -1,12 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Github, Lock, Mail, Users } from "lucide-react";
 import LoginHero from "../components/LoginHero.jsx";
+import ThemeToggle from "../components/ThemeToggle.jsx";
 import { DEMO_LOGIN_EMAIL, DEMO_LOGIN_PASSWORD } from "../constants.js";
 import * as authApi from "../api/auth.js";
 import { authMeQueryKey } from "../hooks/useCurrentUser.js";
-import { getAccessToken, setAccessToken } from "../lib/authStorage.js";
+import { clearAccessToken, getAccessToken, setAccessToken } from "../lib/authStorage.js";
 
 function parseApiError(text) {
   try {
@@ -54,10 +55,22 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  /** Tracks session so we can show / hide "already signed in" after sign-out on this page */
+  const [sessionActive, setSessionActive] = useState(() => Boolean(getAccessToken()));
+
+  function signOutOnThisPage() {
+    queryClient.removeQueries({ queryKey: authMeQueryKey });
+    clearAccessToken();
+    setSessionActive(false);
+  }
 
   useEffect(() => {
-    if (getAccessToken()) navigate("/", { replace: true });
-  }, [navigate]);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -86,23 +99,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="font-inter min-h-screen bg-white text-slate-900 antialiased">
-      <div className="flex min-h-screen flex-col lg:flex-row">
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-background font-inter text-foreground antialiased transition-colors duration-200">
+      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+        <ThemeToggle />
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <LoginHero />
 
         <section
-          className="flex flex-1 flex-col justify-center bg-white px-6 py-10 sm:px-10 lg:w-1/2 lg:px-14 xl:px-20"
+          className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto overscroll-y-none bg-background px-6 py-6 sm:px-10 sm:py-8 lg:w-1/2 lg:overflow-hidden lg:px-14 lg:py-8 xl:px-20"
           aria-label="Sign in"
         >
-          <div className="mx-auto w-full max-w-md">
-            <div className="mb-8 flex rounded-xl bg-slate-100/90 p-1 shadow-inner">
+          <div className="mx-auto w-full max-w-md shrink-0">
+            {sessionActive && (
+              <div className="mb-4 rounded-xl border border-border bg-muted/80 px-4 py-3 text-sm text-foreground">
+                <p className="font-medium">You&apos;re already signed in.</p>
+                <p className="mt-1 text-muted-foreground">
+                  <Link to="/" className="font-semibold text-primary hover:underline">
+                    Go to dashboard
+                  </Link>
+                  {" · "}
+                  <button
+                    type="button"
+                    onClick={signOutOnThisPage}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    Sign out
+                  </button>{" "}
+                  to use another account.
+                </p>
+              </div>
+            )}
+            <div className="mb-5 flex rounded-xl bg-muted p-1 shadow-inner">
               <button
                 type="button"
                 onClick={() => setTab("signin")}
                 className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 ${
                   tab === "signin"
-                    ? "bg-white text-slate-900 shadow-md"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-card text-foreground shadow-md"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Sign In
@@ -112,8 +147,8 @@ export default function LoginPage() {
                 onClick={() => setTab("signup")}
                 className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 ${
                   tab === "signup"
-                    ? "bg-white text-slate-900 shadow-md"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-card text-foreground shadow-md"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Create Account
@@ -121,59 +156,59 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
                 {tab === "signin" ? "Welcome back" : "Create your account"}
               </h2>
-              <p className="text-slate-500">
+              <p className="text-muted-foreground">
                 {tab === "signin"
                   ? "Sign in to your TaskFlow workspace"
                   : "Start your TaskFlow workspace in seconds"}
               </p>
             </div>
 
-            <div className="mt-8 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:shadow"
+                className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm font-medium text-foreground shadow-sm transition hover:border-border hover:bg-muted hover:shadow"
               >
                 <GoogleIcon />
                 Google
               </button>
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:shadow"
+                className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm font-medium text-foreground shadow-sm transition hover:border-border hover:bg-muted hover:shadow"
               >
-                <Github className="h-5 w-5 text-slate-900" strokeWidth={1.75} />
+                <Github className="h-5 w-5 text-foreground" strokeWidth={1.75} />
                 GitHub
               </button>
             </div>
 
-            <div className="relative my-8">
+            <div className="relative my-5">
               <div className="absolute inset-0 flex items-center" aria-hidden>
-                <div className="w-full border-t border-slate-200" />
+                <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs font-medium uppercase tracking-wide">
-                <span className="bg-white px-3 text-slate-400">or continue with email</span>
+                <span className="bg-background px-3 text-muted-foreground">or continue with email</span>
               </div>
             </div>
 
             {error && (
               <div
-                className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-800 dark:text-red-200"
                 role="alert"
               >
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {tab === "signup" && (
                 <div>
-                  <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-slate-700">
+                  <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
                     Full name
                   </label>
                   <div className="relative">
-                    <Users className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <Users className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     <input
                       id="name"
                       name="name"
@@ -183,18 +218,18 @@ export default function LoginPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Jamie Kim"
-                      className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-slate-900 shadow-sm outline-none ring-brand-500/0 transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
+                      className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-foreground shadow-sm outline-none ring-brand-500/0 transition placeholder:text-muted-foreground focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15 dark:bg-card"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
                   Work Email
                 </label>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     id="email"
                     name="email"
@@ -204,14 +239,14 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@company.com"
-                    className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-slate-900 shadow-sm outline-none ring-brand-500/0 transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
+                    className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-foreground shadow-sm outline-none ring-brand-500/0 transition placeholder:text-muted-foreground focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <label htmlFor="password" className="text-sm font-medium text-slate-700">
+                  <label htmlFor="password" className="text-sm font-medium text-foreground">
                     Password
                   </label>
                   {tab === "signin" && (
@@ -225,7 +260,7 @@ export default function LoginPage() {
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     id="password"
                     name="password"
@@ -236,27 +271,27 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Your password"
-                    className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-12 text-slate-900 shadow-sm outline-none ring-brand-500/0 transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
+                    className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-12 text-foreground shadow-sm outline-none ring-brand-500/0 transition placeholder:text-muted-foreground focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                    className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
-                {tab === "signup" && <p className="mt-1 text-xs text-slate-500">At least 6 characters.</p>}
+                {tab === "signup" && <p className="mt-1 text-xs text-muted-foreground">At least 6 characters.</p>}
               </div>
 
               {tab === "signin" && (
-                <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-600">
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={remember}
                     onChange={(e) => setRemember(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    className="h-4 w-4 rounded border-border text-brand-600 focus:ring-brand-500"
                   />
                   Remember me for 30 days
                 </label>
@@ -282,28 +317,28 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-8 rounded-2xl border border-brand-100 bg-brand-50/90 p-4 text-sm text-slate-700 shadow-sm">
-              <p className="mb-2 flex items-center gap-2 font-semibold text-brand-900">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-200/80 text-xs text-brand-800">
+            <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-sm text-foreground shadow-sm dark:border-primary/30 dark:bg-primary/10">
+              <p className="mb-2 flex items-center gap-2 font-semibold text-primary">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-xs text-primary">
                   ⓘ
                 </span>
                 Demo account
               </p>
-              <p className="text-slate-600">
+              <p className="text-muted-foreground">
                 Email:{" "}
-                <code className="rounded bg-white/80 px-1.5 py-0.5 font-mono text-xs text-slate-800">
+                <code className="rounded bg-card px-1.5 py-0.5 font-mono text-xs text-foreground">
                   {DEMO_LOGIN_EMAIL}
                 </code>
               </p>
-              <p className="mt-1 text-slate-600">
+              <p className="mt-1 text-muted-foreground">
                 Password:{" "}
-                <code className="rounded bg-white/80 px-1.5 py-0.5 font-mono text-xs text-slate-800">
+                <code className="rounded bg-card px-1.5 py-0.5 font-mono text-xs text-foreground">
                   {DEMO_LOGIN_PASSWORD}
                 </code>
               </p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Seeded users use the same password after migration +{" "}
-                <code className="rounded bg-white/60 px-1">python scripts/set_demo_passwords.py</code> on old DBs.
+                <code className="rounded bg-muted px-1">python scripts/set_demo_passwords.py</code> on old DBs.
               </p>
             </div>
           </div>

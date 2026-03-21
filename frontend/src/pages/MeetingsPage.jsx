@@ -32,10 +32,10 @@ export default function MeetingsPage() {
 
   return (
     <Layout onNewTask={() => navigate("/board")}>
-      <div className="min-h-full bg-[#f8fafc] p-6 lg:p-8">
+      <div className="min-h-full bg-background p-6 lg:p-8">
         <div className="mx-auto max-w-3xl">
-          <h1 className="font-display text-2xl font-bold text-slate-900">Meetings</h1>
-          <p className="mt-2 text-slate-600">Scheduled sessions for this workspace (from the API).</p>
+          <h1 className="font-display text-2xl font-bold text-foreground">Meetings</h1>
+          <p className="mt-2 text-muted-foreground">Scheduled sessions for this workspace (from the API).</p>
 
           {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
@@ -43,24 +43,24 @@ export default function MeetingsPage() {
             {meetings.map((m) => (
               <li
                 key={m.id}
-                className="rounded-2xl border border-slate-200/90 bg-white px-4 py-4 shadow-sm"
+                className="rounded-2xl border border-border bg-card px-4 py-4 shadow-sm"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="font-semibold text-slate-900">{m.title}</p>
+                  <p className="font-semibold text-foreground">{m.title}</p>
                   <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold capitalize text-violet-800">
                     {m.status}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-slate-600">{formatWhen(m.start_time)}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{formatWhen(m.start_time)}</p>
                 {m.participant_count > 0 && (
-                  <p className="mt-1 text-xs text-slate-500">{m.participant_count} participants</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{m.participant_count} participants</p>
                 )}
               </li>
             ))}
           </ul>
 
           {meetings.length === 0 && !error && (
-            <p className="mt-8 text-sm text-slate-500">No meetings scheduled yet.</p>
+            <p className="mt-8 text-sm text-muted-foreground">No meetings scheduled yet.</p>
           )}
         </div>
       </div>

@@ -85,19 +85,19 @@ export default function AiAssistantPage() {
   return (
     <Layout onNewTask={() => navigate("/board")}>
       <div className="flex min-h-full flex-col bg-gradient-to-b from-violet-50/80 via-[#f8fafc] to-[#f8fafc]">
-        <div className="border-b border-violet-200/60 bg-white/80 px-6 py-5 backdrop-blur">
+        <div className="border-b border-violet-200/60 bg-card/80 px-6 py-5 backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-brand-600 text-white shadow-lg shadow-violet-500/25">
               <Sparkles className="h-5 w-5" strokeWidth={2} />
             </div>
             <div>
-              <h1 className="font-display text-xl font-bold text-slate-900">AI Assistant</h1>
-              <p className="text-sm text-slate-600">Board-aware tips · demo rules (no external API)</p>
+              <h1 className="font-display text-xl font-bold text-foreground">AI Assistant</h1>
+              <p className="text-sm text-muted-foreground">Board-aware tips · demo rules (no external API)</p>
             </div>
             <button
               type="button"
               onClick={refreshContext}
-              className="ml-auto rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="ml-auto rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
             >
               Refresh data
             </button>
@@ -116,14 +116,14 @@ export default function AiAssistantPage() {
                 type="button"
                 onClick={() => send(s)}
                 disabled={thinking}
-                className="rounded-full border border-violet-200 bg-white px-3 py-1.5 text-xs font-medium text-violet-800 shadow-sm hover:bg-violet-50 disabled:opacity-50"
+                className="rounded-full border border-violet-200 bg-card px-3 py-1.5 text-xs font-medium text-violet-800 shadow-sm hover:bg-violet-50 disabled:opacity-50"
               >
                 {s}
               </button>
             ))}
           </div>
 
-          <div className="flex-1 space-y-4 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm">
+          <div className="flex-1 space-y-4 overflow-y-auto rounded-2xl border border-border bg-card/90 p-4 shadow-sm">
             {messages.map((msg, i) => (
               <div
                 key={i}
@@ -134,7 +134,7 @@ export default function AiAssistantPage() {
                     "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
                     msg.role === "user"
                       ? "bg-brand-600 text-white"
-                      : "border border-slate-100 bg-slate-50 text-slate-800"
+                      : "border border-slate-100 bg-slate-50 text-foreground"
                   )}
                 >
                   {msg.text}
@@ -143,7 +143,7 @@ export default function AiAssistantPage() {
             ))}
             {thinking && (
               <div className="flex justify-start">
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-slate-500">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-muted-foreground">
                   Thinking…
                 </div>
               </div>
@@ -156,7 +156,7 @@ export default function AiAssistantPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about your board, tasks, or columns…"
-              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-400/40"
+              className="min-w-0 flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-400/40"
             />
             <button
               type="submit"

@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { columnStripe, priorityDot } from "../lib/priority";
+import { columnStripe, priorityDot } from "../lib/priority.js";
 import { cn } from "../lib/utils.js";
 
 function initials(name) {
@@ -44,7 +44,7 @@ const TaskCard = forwardRef(function TaskCard(
         }
       }}
       className={cn(
-        "group relative w-full cursor-grab rounded-xl border border-slate-200/90 bg-white p-3 text-left shadow-card transition hover:border-brand-200 hover:shadow-md active:cursor-grabbing",
+        "group relative w-full cursor-grab rounded-xl border border-border bg-card p-3 text-left text-card-foreground shadow-card transition-colors duration-200 hover:border-primary/30 hover:shadow-md active:cursor-grabbing dark:shadow-card-dark",
         isDragging && "dragging-task",
         className,
         rbdClassName
@@ -66,37 +66,37 @@ const TaskCard = forwardRef(function TaskCard(
         ))}
       </div>
       <div className="mb-2 flex items-start gap-2">
-        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${priorityDot[task.priority] || "bg-slate-300"}`} />
-        <span className="font-display text-sm font-semibold leading-snug text-slate-900 group-hover:text-brand-700">
+        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${priorityDot[task.priority] || "bg-muted-foreground/40"}`} />
+        <span className="font-display text-sm font-semibold leading-snug text-foreground group-hover:text-primary">
           {task.title}
         </span>
       </div>
       {task.checklist_total > 0 && (
         <div className="mb-3">
-          <div className="mb-1 flex justify-between text-[11px] text-slate-500">
+          <div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
             <span>
               {task.checklist_done}/{task.checklist_total}
             </span>
             <span>{pct}%</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between border-t border-slate-100 pt-2">
+      <div className="flex items-center justify-between border-t border-border pt-2">
         <div className="flex -space-x-2">
           {task.assignees?.slice(0, 3).map((u) => (
             <span
               key={u.id}
               title={u.name}
-              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-violet-400 to-brand-600 text-[10px] font-bold text-white"
+              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-gradient-to-br from-violet-400 to-brand-600 text-[10px] font-bold text-white"
             >
               {initials(u.name)}
             </span>
           ))}
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-400">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           {task.due_date && <span>{task.due_date.slice(5).replace("-", " ")}</span>}
           <span className="flex items-center gap-0.5" title="Comments">
             💬 {task.comment_count ?? 0}

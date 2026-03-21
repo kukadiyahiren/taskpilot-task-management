@@ -158,11 +158,13 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   if (!task) {
     return createPortal(
       <div
-        className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity duration-200 ease-out ${
+        className={`fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm transition-opacity duration-200 ease-out dark:bg-black/55 ${
           exiting ? "opacity-0" : "opacity-100"
         }`}
       >
-        <div className="rounded-2xl bg-white px-8 py-6 shadow-modal">Loading…</div>
+        <div className="rounded-2xl border border-border bg-card px-8 py-6 text-foreground shadow-modal dark:shadow-modal-dark">
+          Loading…
+        </div>
       </div>,
       document.body
     );
@@ -177,7 +179,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   const modal = (
     <div
       role="presentation"
-      className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/45 p-4 backdrop-blur-sm transition-opacity duration-200 ease-out md:pt-12 ${
+      className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/45 p-4 backdrop-blur-sm transition-opacity duration-200 ease-out dark:bg-black/55 md:pt-12 ${
         exiting ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
       onMouseDown={(e) => {
@@ -187,7 +189,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-modal transition-all duration-200 ease-out md:flex-row ${
+        className={`relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-modal transition-all duration-200 ease-out dark:shadow-modal-dark md:flex-row ${
           exiting ? "translate-y-1 scale-[0.98] opacity-0" : "translate-y-0 scale-100 opacity-100"
         }`}
         onMouseDown={(e) => e.stopPropagation()}
@@ -195,7 +197,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
         <button
           type="button"
           onClick={requestClose}
-          className="absolute right-4 top-4 z-10 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          className="absolute right-4 top-4 z-10 rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-label="Close"
         >
           ✕
@@ -207,13 +209,13 @@ export default function TaskModal({ taskId, boardId, onClose }) {
               value={titleEdit}
               onChange={(e) => setTitleEdit(e.target.value)}
               onBlur={saveMeta}
-              className="flex-1 min-w-[200px] font-display text-xl font-bold text-slate-900 outline-none ring-brand-400/0 focus:ring-2 rounded-lg px-1 -mx-1"
+              className="-mx-1 min-w-[200px] flex-1 rounded-lg px-1 font-display text-xl font-bold text-foreground outline-none ring-brand-400/0 focus:ring-2"
             />
             <div className="relative">
               <select
                 value={task.priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="appearance-none rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-8 text-sm font-medium capitalize"
+                className="appearance-none rounded-lg border border-border bg-muted py-1.5 pl-8 pr-8 text-sm font-medium capitalize text-foreground"
               >
                 {["urgent", "high", "medium", "low"].map((p) => (
                   <option key={p} value={p}>
@@ -227,7 +229,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
             </div>
           </div>
 
-          <p className="mb-4 text-sm text-slate-500">
+          <p className="mb-4 text-sm text-muted-foreground">
             {task.due_date && <span className="mr-3">Due {task.due_date}</span>}
             {task.labels?.map((lb) => (
               <span
@@ -241,14 +243,14 @@ export default function TaskModal({ taskId, boardId, onClose }) {
           </p>
 
           <div className="mb-6">
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Description
             </label>
             <textarea
               value={descEdit}
               onChange={(e) => setDescEdit(e.target.value)}
               rows={4}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-400/30"
+              className="w-full rounded-xl border border-border bg-muted p-3 text-sm text-foreground outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-400/30"
             />
             <div className="mt-2 flex gap-2">
               <button
@@ -265,7 +267,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                   setTitleEdit(task.title);
                   setDescEdit(task.description ?? "");
                 }}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </button>
@@ -273,33 +275,33 @@ export default function TaskModal({ taskId, boardId, onClose }) {
           </div>
 
           <div className="mb-4">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Assignees
             </label>
-            <p className="mb-2 text-xs text-slate-500">Checked teammates are saved to this task for everyone on the board.</p>
-            <ul className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/80 p-2">
+            <p className="mb-2 text-xs text-muted-foreground">Checked teammates are saved to this task for everyone on the board.</p>
+            <ul className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border bg-muted/80 p-2">
               {teamUsers.map((u) => (
                 <li key={u.id}>
-                  <label className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-white">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-card">
                     <input
                       type="checkbox"
                       checked={assigneeIds.includes(u.id)}
                       disabled={saving}
                       onChange={() => toggleAssignee(u.id)}
-                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                      className="rounded border-border text-brand-600 focus:ring-brand-500"
                     />
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
                       {userInitials(u.name)}
                     </span>
-                    <span className="min-w-0 flex-1 text-sm font-medium text-slate-800">{u.name}</span>
-                    <span className="truncate text-xs text-slate-400">{u.email}</span>
+                    <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{u.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">{u.email}</span>
                   </label>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="border-b border-slate-200">
+          <div className="border-b border-border">
             <div className="flex gap-1">
               {[
                 ["comments", `Comments (${task.comments?.length ?? 0})`],
@@ -312,7 +314,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                   type="button"
                   onClick={() => setTab(k)}
                   className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-                    tab === k ? "border-brand-600 text-brand-700" : "border-transparent text-slate-500 hover:text-slate-800"
+                    tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {lab}
@@ -335,10 +337,10 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                     </div>
                     <div>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-sm font-semibold text-slate-800">{c.user.name}</span>
-                        <span className="text-xs text-slate-400">{formatAgo(c.created_at)}</span>
+                        <span className="text-sm font-semibold text-foreground">{c.user.name}</span>
+                        <span className="text-xs text-muted-foreground">{formatAgo(c.created_at)}</span>
                       </div>
-                      <p className="mt-1 text-sm text-slate-600">{c.body}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{c.body}</p>
                     </div>
                   </div>
                 ))}
@@ -347,12 +349,12 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     placeholder="Add a comment…"
-                    className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-400/40"
+                    className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-brand-400/40"
                   />
                   <button
                     type="submit"
                     disabled={saving}
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                    className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
                   >
                     Post
                   </button>
@@ -360,20 +362,20 @@ export default function TaskModal({ taskId, boardId, onClose }) {
               </div>
             )}
             {tab !== "comments" && (
-              <p className="text-sm text-slate-400">This tab is a placeholder for the full product experience.</p>
+              <p className="text-sm text-muted-foreground">This tab is a placeholder for the full product experience.</p>
             )}
           </div>
         </div>
 
-        <aside className="w-full shrink-0 border-t border-slate-200 bg-slate-50/80 p-6 md:w-72 md:border-l md:border-t-0">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Checklist</h3>
+        <aside className="w-full shrink-0 border-t border-border bg-muted/50 p-6 md:w-72 md:border-l md:border-t-0">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Checklist</h3>
           <div className="mb-2 flex justify-between text-sm">
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-foreground">
               {doneC}/{totalC}
             </span>
-            <span className="text-slate-500">{pct}%</span>
+            <span className="text-muted-foreground">{pct}%</span>
           </div>
-          <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-200">
+          <div className="mb-4 h-2 overflow-hidden rounded-full bg-muted">
             <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
           </div>
           <ul className="space-y-2">
@@ -383,16 +385,16 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                   type="checkbox"
                   checked={it.done}
                   onChange={() => toggleItem(it.id, it.done)}
-                  className="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  className="mt-1 rounded border-border text-brand-600 focus:ring-brand-500"
                 />
-                <span className={`text-sm ${it.done ? "text-slate-400 line-through" : "text-slate-700"}`}>
+                <span className={`text-sm ${it.done ? "text-muted-foreground line-through" : "text-foreground"}`}>
                   {it.title}
                 </span>
               </li>
             ))}
           </ul>
 
-          <h3 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-slate-500">Labels</h3>
+          <h3 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Labels</h3>
           <div className="flex flex-wrap gap-2">
             {task.labels?.map((lb) => (
               <span
@@ -408,7 +410,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
           <button
             type="button"
             onClick={removeTask}
-            className="mt-10 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+            className="mt-10 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-sm font-medium text-red-700 hover:bg-red-500/15 dark:text-red-300"
           >
             Delete task
           </button>

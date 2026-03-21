@@ -4,11 +4,11 @@ export function Badge({ className, variant = "default", ...props }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums",
-        variant === "default" && "bg-slate-100 text-slate-700",
-        variant === "brand" && "bg-violet-100 text-[#7C3AED]",
-        variant === "new" && "bg-violet-600 text-white",
-        variant === "live" && "bg-emerald-100 text-emerald-800",
+        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors",
+        variant === "default" && "bg-muted text-muted-foreground",
+        variant === "brand" && "bg-primary/15 text-primary",
+        variant === "new" && "bg-primary text-primary-foreground",
+        variant === "live" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
         className
       )}
       {...props}

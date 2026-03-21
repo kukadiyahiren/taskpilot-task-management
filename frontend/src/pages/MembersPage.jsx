@@ -18,10 +18,10 @@ export default function MembersPage() {
 
   return (
     <Layout onNewTask={() => navigate("/board")}>
-      <div className="min-h-full bg-[#f8fafc] p-6 lg:p-8">
+      <div className="min-h-full bg-background p-6 lg:p-8">
         <div className="mx-auto max-w-3xl">
-          <h1 className="font-display text-2xl font-bold text-slate-900">Team members</h1>
-          <p className="mt-2 text-slate-600">
+          <h1 className="font-display text-2xl font-bold text-foreground">Team members</h1>
+          <p className="mt-2 text-muted-foreground">
             Everyone listed here can be assigned to tasks. Invite more people from the{" "}
             <button
               type="button"
@@ -39,16 +39,16 @@ export default function MembersPage() {
             {users.map((u) => (
               <li
                 key={u.id}
-                className="flex items-center gap-4 rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-sm"
+                className="flex items-center gap-4 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-brand-600 text-sm font-bold text-white">
                   {initialsFromName(u.name)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-900">{u.name}</p>
-                  <p className="truncate text-sm text-slate-500">{u.email}</p>
+                  <p className="font-semibold text-foreground">{u.name}</p>
+                  <p className="truncate text-sm text-muted-foreground">{u.email}</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                   {u.role}
                 </span>
               </li>
@@ -56,7 +56,7 @@ export default function MembersPage() {
           </ul>
 
           {users.length === 0 && !error && (
-            <p className="mt-8 text-sm text-slate-500">No members returned from the API.</p>
+            <p className="mt-8 text-sm text-muted-foreground">No members returned from the API.</p>
           )}
         </div>
       </div>

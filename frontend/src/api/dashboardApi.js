@@ -26,6 +26,11 @@ export function fetchBoard(boardId) {
   return http.get(`/boards/${boardId}`);
 }
 
+/** Backend: GET /workspaces/{workspaceId} */
+export function fetchWorkspace(workspaceId) {
+  return http.get(`/workspaces/${workspaceId}`);
+}
+
 /** Backend: GET /workspaces/{workspaceId}/meetings */
 export function fetchWorkspaceMeetings(workspaceId) {
   return http.get(`/workspaces/${workspaceId}/meetings`);

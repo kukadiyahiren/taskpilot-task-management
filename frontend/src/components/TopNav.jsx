@@ -1,20 +1,21 @@
-import { Bell, Menu, Moon, Plus, Search, Sun } from "lucide-react";
+import { Bell, Menu, Plus, Search } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useWorkspaceNotifications } from "../hooks/useWorkspaceNotifications.js";
 import { Button } from "./ui/button.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
 import { cn } from "../lib/utils.js";
 
-export default function TopNav({ onNewTask, onOpenMobileMenu, dark, onToggleDark }) {
+export default function TopNav({ onNewTask, onOpenMobileMenu }) {
   const { pathname } = useLocation();
   const { unreadCount } = useWorkspaceNotifications();
   const notifLabel = unreadCount > 99 ? "99+" : unreadCount > 0 ? String(unreadCount) : null;
   const boardActive = pathname.startsWith("/board");
 
   return (
-    <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-sm sm:gap-4 lg:px-6">
+    <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur-sm sm:gap-4 lg:px-6">
       <button
         type="button"
-        className="inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+        className="inline-flex rounded-xl p-2 text-muted-foreground hover:bg-muted lg:hidden"
         onClick={onOpenMobileMenu}
         aria-label="Open menu"
       >
@@ -22,13 +23,13 @@ export default function TopNav({ onNewTask, onOpenMobileMenu, dark, onToggleDark
       </button>
 
       <div className="relative min-w-0 max-w-xl flex-1">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="search"
           placeholder="Search tasks, boards, members… (⌘K)"
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-16 text-sm text-slate-900 outline-none ring-[#7C3AED]/0 transition placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-500/15"
+          className="w-full rounded-xl border border-input bg-muted/50 py-2.5 pl-10 pr-16 text-sm text-foreground outline-none ring-ring/0 transition placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-4 focus:ring-ring/20"
         />
-        <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] font-medium text-slate-400 sm:inline-block">
+        <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-block">
           ⌘K
         </kbd>
       </div>
@@ -39,34 +40,27 @@ export default function TopNav({ onNewTask, onOpenMobileMenu, dark, onToggleDark
       </Button>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-        <button
-          type="button"
-          onClick={onToggleDark}
-          className="rounded-xl p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-          aria-label="Toggle dark mode"
-        >
-          {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </button>
+        <ThemeToggle />
         <Link
           to="/notifications"
-          className="relative rounded-xl p-2.5 text-slate-500 transition hover:bg-slate-100"
+          className="relative rounded-xl p-2.5 text-muted-foreground transition hover:bg-muted"
           aria-label={notifLabel ? `Notifications, ${unreadCount} unread` : "Notifications"}
         >
           <Bell className="h-5 w-5" />
           {notifLabel != null && (
-            <span className="absolute right-1 top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+            <span className="absolute right-1 top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-card">
               {notifLabel}
             </span>
           )}
         </Link>
       </div>
 
-      <div className="hidden shrink-0 items-center rounded-xl border border-slate-200 bg-slate-50 p-1 sm:flex">
+      <div className="hidden shrink-0 items-center rounded-xl border border-border bg-muted/80 p-1 sm:flex">
         <Link
           to="/"
           className={cn(
             "rounded-lg px-3 py-1.5 text-sm font-semibold transition",
-            !boardActive ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+            !boardActive ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
           )}
         >
           Dashboard
@@ -75,7 +69,7 @@ export default function TopNav({ onNewTask, onOpenMobileMenu, dark, onToggleDark
           to="/board"
           className={cn(
             "rounded-lg px-3 py-1.5 text-sm font-semibold transition",
-            boardActive ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+            boardActive ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
           )}
         >
           Board

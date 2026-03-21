@@ -41,7 +41,7 @@ export function ActivityList({ items, isLoading, isError, onRetry }) {
   if (isError) {
     return (
       <Card className="flex h-full min-h-[280px] flex-col items-center justify-center p-8 text-center">
-        <p className="text-sm text-red-600">Could not load activity.</p>
+        <p className="text-sm text-destructive">Could not load activity.</p>
         <Button variant="outline" className="mt-3" onClick={onRetry}>
           Retry
         </Button>
@@ -54,7 +54,7 @@ export function ActivityList({ items, isLoading, isError, onRetry }) {
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <CardTitle className="text-base">Recent Activity</CardTitle>
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -73,23 +73,23 @@ export function ActivityList({ items, isLoading, isError, onRetry }) {
                 {initials(row.user.name)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-slate-800">
+                <p className="text-foreground">
                   <span className="font-semibold">{row.user.name}</span>
-                  <span className="text-slate-600"> {row.detail}</span>
+                  <span className="text-muted-foreground"> {row.detail}</span>
                 </p>
-                <p className="mt-0.5 text-xs text-slate-400">{formatRelativeTime(row.created_at)}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{formatRelativeTime(row.created_at)}</p>
               </div>
-              <Activity className="mt-1 h-4 w-4 shrink-0 text-slate-300" aria-hidden />
+              <Activity className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/40" aria-hidden />
             </li>
           ))}
         </ul>
         {!items?.length && (
-          <p className="py-8 text-center text-sm text-slate-400">No recent activity on this board.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">No recent activity on this board.</p>
         )}
         <div className="pt-4">
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-sm font-medium text-[#7C3AED] hover:underline"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
           >
             View full activity log
             <ExternalLink className="h-3.5 w-3.5" />

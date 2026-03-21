@@ -185,26 +185,26 @@ export default function BoardPage() {
   return (
     <Layout onNewTask={handleNewTask}>
       <div className="flex h-full min-h-0 flex-col bg-gradient-to-b from-slate-50 to-slate-100/80">
-        <div className="border-b border-slate-200/80 bg-white/60 px-6 py-4 backdrop-blur">
+        <div className="border-b border-border bg-card/60 px-6 py-4 backdrop-blur">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-brand-600">Sprint</p>
-              <h1 className="font-display text-2xl font-bold text-slate-900">
+              <h1 className="font-display text-2xl font-bold text-foreground">
                 {loading ? "Loading…" : board?.name ?? "Board"}
               </h1>
               {board?.sprint_end && (
-                <p className="mt-1 text-sm text-slate-500">Ends {board.sprint_end}</p>
+                <p className="mt-1 text-sm text-muted-foreground">Ends {board.sprint_end}</p>
               )}
             </div>
             <div className="flex flex-col items-end gap-1 sm:items-end">
               <div className="flex flex-wrap items-center gap-2">
-              {saving && <span className="text-xs text-slate-400">Saving…</span>}
-              {exportBusy && <span className="text-xs text-slate-400">Exporting…</span>}
+              {saving && <span className="text-xs text-muted-foreground/70">Saving…</span>}
+              {exportBusy && <span className="text-xs text-muted-foreground/70">Exporting…</span>}
               <button
                 type="button"
                 disabled={exportBusy}
                 onClick={() => void handleExport("csv")}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-muted disabled:opacity-50"
               >
                 Export CSV
               </button>
@@ -212,14 +212,14 @@ export default function BoardPage() {
                 type="button"
                 disabled={exportBusy}
                 onClick={() => void handleExport("xlsx")}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-muted disabled:opacity-50"
               >
                 Excel
               </button>
               <button
                 type="button"
                 onClick={() => setInviteOpen((o) => !o)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-muted"
               >
                 {inviteOpen ? "Close invite" : "Add teammate"}
               </button>
@@ -245,35 +245,35 @@ export default function BoardPage() {
               className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-brand-100 bg-brand-50/50 p-4"
             >
               <div>
-                <label className="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Name</label>
+                <label className="mb-0.5 block text-[10px] font-bold uppercase text-muted-foreground">Name</label>
                 <input
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}
                   required
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                  className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
                   placeholder="Alex Lee"
                 />
               </div>
               <div>
-                <label className="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Email</label>
+                <label className="mb-0.5 block text-[10px] font-bold uppercase text-muted-foreground">Email</label>
                 <input
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   required
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                  className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
                   placeholder="alex@company.com"
                 />
               </div>
               <div>
-                <label className="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Password</label>
+                <label className="mb-0.5 block text-[10px] font-bold uppercase text-muted-foreground">Password</label>
                 <input
                   type="password"
                   value={invitePassword}
                   onChange={(e) => setInvitePassword(e.target.value)}
                   required
                   minLength={6}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                  className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
                   placeholder="≥ 6 characters"
                 />
               </div>
@@ -285,7 +285,7 @@ export default function BoardPage() {
                 {inviteBusy ? "Adding…" : "Create account"}
               </button>
               {inviteMsg && (
-                <p className="w-full text-sm text-slate-700" role="status">
+                <p className="w-full text-sm text-foreground" role="status">
                   {inviteMsg}
                 </p>
               )}
@@ -296,15 +296,15 @@ export default function BoardPage() {
             <input
               type="search"
               placeholder="Search cards…"
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-400/40"
+              className="rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-400/40"
             />
-            <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+            <select className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
               <option>All priorities</option>
             </select>
             <select
               value={memberFilter}
               onChange={(e) => setMemberFilter(e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600"
+              className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground"
             >
               <option value="">All members</option>
               {teamUsers.map((u) => (
@@ -351,23 +351,23 @@ export default function BoardPage() {
                         setAddListError("");
                         setAddListOpen(true);
                       }}
-                      className="flex h-12 min-h-[3rem] w-full items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 text-sm font-medium text-slate-500 hover:border-brand-300 hover:text-brand-600"
+                      className="flex h-12 min-h-[3rem] w-full items-center justify-center rounded-2xl border-2 border-dashed border-border text-sm font-medium text-muted-foreground hover:border-brand-300 hover:text-brand-600"
                     >
                       + Add another list
                     </button>
                   ) : (
                     <form
                       onSubmit={submitNewList}
-                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                      className="rounded-2xl border border-border bg-card p-4 shadow-sm"
                     >
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         New column
                       </p>
                       <input
                         value={newListName}
                         onChange={(e) => setNewListName(e.target.value)}
                         placeholder="List name"
-                        className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-400/40"
+                        className="mb-2 w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-400/40"
                         autoFocus
                       />
                       {addListError && <p className="mb-2 text-xs text-red-600">{addListError}</p>}
@@ -386,7 +386,7 @@ export default function BoardPage() {
                             setNewListName("");
                             setAddListError("");
                           }}
-                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                          className="rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
                         >
                           Cancel
                         </button>

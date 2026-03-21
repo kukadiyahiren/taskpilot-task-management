@@ -19,11 +19,11 @@ const colors = ["bg-violet-500", "bg-blue-500", "bg-emerald-500", "bg-amber-500"
 
 function actionStyle(action) {
   const a = (action || "").toLowerCase();
-  if (a === "moved") return "bg-sky-100 text-sky-800";
-  if (a === "created") return "bg-emerald-100 text-emerald-800";
-  if (a === "updated") return "bg-amber-100 text-amber-800";
-  if (a === "deleted") return "bg-red-100 text-red-800";
-  return "bg-slate-100 text-slate-700";
+  if (a === "moved") return "bg-sky-500/15 text-sky-800 dark:text-sky-300";
+  if (a === "created") return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300";
+  if (a === "updated") return "bg-amber-500/15 text-amber-900 dark:text-amber-200";
+  if (a === "deleted") return "bg-red-500/15 text-red-800 dark:text-red-300";
+  return "bg-muted text-muted-foreground";
 }
 
 export default function NotificationsPage() {
@@ -36,25 +36,25 @@ export default function NotificationsPage() {
 
   return (
     <Layout onNewTask={() => navigate("/board")}>
-      <div className="min-h-full bg-[#f8fafc] p-6 lg:p-8">
+      <div className="min-h-full bg-background p-6 lg:p-8">
         <div className="mx-auto max-w-2xl">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="font-display text-2xl font-bold text-slate-900">Notifications</h1>
-              <p className="mt-1 text-sm text-slate-600">
+              <h1 className="font-display text-2xl font-bold text-foreground">Notifications</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Recent activity across all boards in this workspace.
               </p>
             </div>
             <button
               type="button"
               onClick={() => refetch()}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+              className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-muted"
             >
               Refresh
             </button>
           </div>
 
-          {isLoading && <p className="mt-10 text-sm text-slate-500">Loading…</p>}
+          {isLoading && <p className="mt-10 text-sm text-muted-foreground">Loading…</p>}
 
           {isError && (
             <div className="mt-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -66,14 +66,14 @@ export default function NotificationsPage() {
           )}
 
           {!isLoading && !isError && items.length === 0 && (
-            <p className="mt-10 text-sm text-slate-500">No activity yet. Move or edit tasks on the board to see updates here.</p>
+            <p className="mt-10 text-sm text-muted-foreground">No activity yet. Move or edit tasks on the board to see updates here.</p>
           )}
 
           <ul className="mt-8 space-y-4">
             {items.map((row, i) => (
               <li
                 key={row.id}
-                className="flex gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm"
+                className="flex gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm"
               >
                 <div
                   className={cn(
@@ -88,11 +88,11 @@ export default function NotificationsPage() {
                     <span className={cn("rounded-md px-2 py-0.5 text-[10px] font-bold uppercase", actionStyle(row.action))}>
                       {row.action}
                     </span>
-                    <span className="text-xs text-slate-400">{formatRelativeTime(row.created_at)}</span>
+                    <span className="text-xs text-muted-foreground/70">{formatRelativeTime(row.created_at)}</span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-800">
+                  <p className="mt-1 text-sm text-foreground">
                     <span className="font-semibold">{row.user.name}</span>
-                    <span className="text-slate-600"> {row.detail}</span>
+                    <span className="text-muted-foreground"> {row.detail}</span>
                   </p>
                 </div>
               </li>

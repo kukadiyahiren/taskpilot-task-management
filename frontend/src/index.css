@@ -2,12 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design tokens (Light) — avoid pure black; WCAG-friendly contrast ─── */
 :root {
   color-scheme: light;
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 262 83% 58%;
+  --primary: 262 83% 58%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --chart-grid: 214 32% 91%;
+  --chart-muted: 215 16% 47%;
+  --overlay: 222 47% 11%;
+  --sidebar: 210 20% 98%;
+  --sidebar-foreground: 222 47% 11%;
 }
 
-body {
-  @apply bg-slate-50 text-slate-800 antialiased font-sans;
+.dark {
+  color-scheme: dark;
+  --background: 222 47% 8%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 11%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  --border: 217 33% 22%;
+  --input: 217 33% 22%;
+  --ring: 262 83% 58%;
+  --primary: 262 83% 58%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --chart-grid: 217 33% 22%;
+  --chart-muted: 215 20% 65%;
+  --overlay: 222 47% 4%;
+  --sidebar: 222 47% 9%;
+  --sidebar-foreground: 210 40% 98%;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+    transition: color 0.2s ease, background-color 0.2s ease;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans transition-colors duration-200;
+  }
 }
 
 /* Dragging */

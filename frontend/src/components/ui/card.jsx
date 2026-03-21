@@ -4,7 +4,7 @@ export function Card({ className, ...props }) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-200/90 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.04)]",
+        "rounded-2xl border border-border bg-card text-card-foreground shadow-card transition-colors duration-200 dark:shadow-card-dark",
         className
       )}
       {...props}
@@ -17,7 +17,7 @@ export function CardHeader({ className, ...props }) {
 }
 
 export function CardTitle({ className, ...props }) {
-  return <h3 className={cn("text-lg font-semibold tracking-tight text-slate-900", className)} {...props} />;
+  return <h3 className={cn("text-lg font-semibold tracking-tight text-card-foreground", className)} {...props} />;
 }
 
 export function CardContent({ className, ...props }) {

@@ -4,6 +4,7 @@ import {
   fetchDashboardStats,
   fetchRecentActivity,
   fetchTaskAnalytics,
+  fetchWorkspace,
   fetchWorkspaceMeetings,
 } from "../api/dashboardApi.js";
 import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
@@ -14,6 +15,7 @@ export const qk = {
   activity: (board, limit) => ["dashboard", "activity", board, limit],
   board: (id) => ["boards", id],
   meetings: (ws) => ["workspaces", ws, "meetings"],
+  workspace: (id) => ["workspaces", id],
 };
 
 export function useDashboardStats(
@@ -56,6 +58,14 @@ export function useWorkspaceMeetings(workspaceId = WORKSPACE_ID) {
     queryKey: qk.meetings(workspaceId),
     queryFn: () => fetchWorkspaceMeetings(workspaceId),
     staleTime: 30_000,
+  });
+}
+
+export function useWorkspace(workspaceId = WORKSPACE_ID) {
+  return useQuery({
+    queryKey: qk.workspace(workspaceId),
+    queryFn: () => fetchWorkspace(workspaceId),
+    staleTime: 60_000,
   });
 }
 

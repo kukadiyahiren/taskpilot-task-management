@@ -31,7 +31,7 @@ export function OverdueTable({ board, overdue, isLoading, isError, onViewBoard, 
   if (isError) {
     return (
       <Card className="flex min-h-[200px] flex-col items-center justify-center p-8">
-        <p className="text-sm text-red-600">Could not load board for overdue tasks.</p>
+        <p className="text-sm text-destructive">Could not load board for overdue tasks.</p>
         <Button variant="outline" className="mt-3" onClick={onRetry}>
           Retry
         </Button>
@@ -43,17 +43,17 @@ export function OverdueTable({ board, overdue, isLoading, isError, onViewBoard, 
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 pb-2">
         <div className="flex items-start gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
             <CardTitle className="text-base">Overdue Tasks</CardTitle>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               {overdue.length} task{overdue.length === 1 ? "" : "s"} need immediate attention
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" className="gap-1 text-[#7C3AED]" onClick={onViewBoard}>
+        <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={onViewBoard}>
           View board
           <ExternalLink className="h-4 w-4" />
         </Button>
@@ -61,7 +61,7 @@ export function OverdueTable({ board, overdue, isLoading, isError, onViewBoard, 
       <CardContent className="overflow-x-auto pt-0">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <tr className="border-b border-border text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <th className="pb-3 pr-4">Task</th>
               <th className="pb-3 pr-4">Assignee</th>
               <th className="pb-3 pr-4">Board</th>
@@ -76,47 +76,47 @@ export function OverdueTable({ board, overdue, isLoading, isError, onViewBoard, 
               return (
                 <tr
                   key={t.id}
-                  className="border-b border-red-50 bg-red-50/40 transition hover:bg-red-50/80"
+                  className="border-b border-red-500/10 bg-red-500/[0.06] transition hover:bg-red-500/10 dark:bg-red-950/20 dark:hover:bg-red-950/30"
                 >
-                  <td className="py-3 pr-4 font-medium text-slate-900">{t.title}</td>
+                  <td className="py-3 pr-4 font-medium text-foreground">{t.title}</td>
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-2">
                       {t.assignees?.[0] ? (
                         <>
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-800">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
                             {t.assignees[0].name[0]}
                           </span>
-                          <span className="text-slate-600">{t.assignees[0].name}</span>
+                          <span className="text-muted-foreground">{t.assignees[0].name}</span>
                         </>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-muted-foreground/60">—</span>
                       )}
                     </div>
                   </td>
-                  <td className="py-3 pr-4 text-slate-600">{t.boardName ?? "—"}</td>
-                  <td className="py-3 pr-4 font-medium text-red-600">{t.due_date}</td>
+                  <td className="py-3 pr-4 text-muted-foreground">{t.boardName ?? "—"}</td>
+                  <td className="py-3 pr-4 font-medium text-red-600 dark:text-red-400">{t.due_date}</td>
                   <td className="py-3 pr-4">
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold capitalize",
-                        t.priority === "urgent" && "bg-red-100 text-red-800",
-                        t.priority === "high" && "bg-orange-100 text-orange-800",
-                        t.priority === "medium" && "bg-amber-100 text-amber-900",
-                        t.priority === "low" && "bg-sky-100 text-sky-800"
+                        t.priority === "urgent" && "bg-red-500/15 text-red-800 dark:text-red-300",
+                        t.priority === "high" && "bg-orange-500/15 text-orange-800 dark:text-orange-300",
+                        t.priority === "medium" && "bg-amber-500/15 text-amber-900 dark:text-amber-200",
+                        t.priority === "low" && "bg-sky-500/15 text-sky-800 dark:text-sky-300"
                       )}
                     >
                       <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[t.priority]}`} />
                       {priorityLabel[t.priority]}
                     </span>
                   </td>
-                  <td className="py-3 font-semibold text-red-600">{days}d overdue</td>
+                  <td className="py-3 font-semibold text-red-600 dark:text-red-400">{days}d overdue</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
         {!overdue.length && (
-          <p className="py-10 text-center text-sm text-slate-400">No overdue tasks on this board.</p>
+          <p className="py-10 text-center text-sm text-muted-foreground">No overdue tasks on this board.</p>
         )}
       </CardContent>
     </Card>

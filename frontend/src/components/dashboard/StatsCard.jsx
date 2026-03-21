@@ -35,30 +35,28 @@ export function StatsCard({
   const trendColor =
     trendInverted != null
       ? up
-        ? "text-red-600"
-        : "text-emerald-600"
+        ? "text-red-600 dark:text-red-400"
+        : "text-emerald-600 dark:text-emerald-400"
       : up
-        ? "text-emerald-600"
-        : "text-red-600";
+        ? "text-emerald-600 dark:text-emerald-400"
+        : "text-red-600 dark:text-red-400";
 
   return (
     <div
       className={cn(
-        "group rounded-2xl border bg-white p-5 shadow-sm transition hover:shadow-md",
-        border === "red" && "border-red-200 ring-1 ring-red-100",
-        border === "green" && "border-emerald-200 ring-1 ring-emerald-100",
-        (border == null || border === "default") && "border-slate-200/90",
+        "group rounded-2xl border bg-card p-5 text-card-foreground shadow-sm transition-colors duration-200 hover:shadow-md",
+        border === "red" && "border-red-300/60 ring-1 ring-red-500/10 dark:border-red-800 dark:ring-red-900/30",
+        border === "green" && "border-emerald-300/60 ring-1 ring-emerald-500/10 dark:border-emerald-800 dark:ring-emerald-900/30",
+        (border == null || border === "default") && "border-border",
         className
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-2 font-display text-3xl font-bold tabular-nums tracking-tight text-slate-900">
-            {value}
-          </p>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="mt-2 font-display text-3xl font-bold tabular-nums tracking-tight">{value}</p>
         </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-[#7C3AED] transition group-hover:bg-violet-100">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary/15">
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </div>
       </div>
@@ -74,14 +72,18 @@ export function StatsCard({
 
 export function StatsCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="flex justify-between">
         <div className="space-y-2">
-          <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
-          <div className="h-9 w-16 animate-pulse rounded bg-slate-200" />
+          <SkeletonBar className="h-4 w-24" />
+          <SkeletonBar className="h-9 w-16" />
         </div>
-        <div className="h-11 w-11 animate-pulse rounded-xl bg-slate-200" />
+        <SkeletonBar className="h-11 w-11 rounded-xl" />
       </div>
     </div>
   );
+}
+
+function SkeletonBar({ className }) {
+  return <div className={cn("animate-pulse rounded bg-muted", className)} />;
 }
