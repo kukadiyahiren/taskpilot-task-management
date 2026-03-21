@@ -5,6 +5,7 @@ import KanbanColumn from "../components/KanbanColumn.jsx";
 import TaskModal from "../components/TaskModal.jsx";
 import { api } from "../api/client.js";
 import { DEFAULT_BOARD_ID } from "../constants.js";
+import { downloadBoardExport } from "../lib/downloadBoardExport.js";
 import { registerTeammate } from "../lib/registerTeammate.js";
 import { useBoardStore } from "../store/boardStore.js";
 
@@ -45,6 +46,9 @@ export default function BoardPage() {
   const [invitePassword, setInvitePassword] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
+
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportErr, setExportErr] = useState("");
 
   useEffect(() => {
     loadBoard(boardId);
@@ -136,6 +140,18 @@ export default function BoardPage() {
     }
   }
 
+  async function handleExport(fmt) {
+    setExportErr("");
+    setExportBusy(true);
+    try {
+      await downloadBoardExport(boardId, fmt);
+    } catch (err) {
+      setExportErr(err?.message || "Export failed");
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   async function submitInvite(e) {
     e.preventDefault();
     setInviteMsg("");
@@ -180,8 +196,26 @@ export default function BoardPage() {
                 <p className="mt-1 text-sm text-slate-500">Ends {board.sprint_end}</p>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col items-end gap-1 sm:items-end">
+              <div className="flex flex-wrap items-center gap-2">
               {saving && <span className="text-xs text-slate-400">Saving…</span>}
+              {exportBusy && <span className="text-xs text-slate-400">Exporting…</span>}
+              <button
+                type="button"
+                disabled={exportBusy}
+                onClick={() => void handleExport("csv")}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+              >
+                Export CSV
+              </button>
+              <button
+                type="button"
+                disabled={exportBusy}
+                onClick={() => void handleExport("xlsx")}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+              >
+                Excel
+              </button>
               <button
                 type="button"
                 onClick={() => setInviteOpen((o) => !o)}
@@ -200,6 +234,8 @@ export default function BoardPage() {
                   </span>
                 ))}
               </div>
+              </div>
+              {exportErr && <p className="text-xs text-red-600">{exportErr}</p>}
             </div>
           </div>
 

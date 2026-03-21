@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from enum import Enum
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
@@ -13,9 +16,15 @@ from app.schemas import (
     LabelRead,
     ReorderListsBody,
 )
+from app.services.task_export import build_export_matrix, matrix_to_csv, matrix_to_xlsx
 from app.services.task_summary import summarize_tasks
 
 router = APIRouter(prefix="/boards", tags=["boards"])
+
+
+class ExportFormat(str, Enum):
+    csv = "csv"
+    xlsx = "xlsx"
 
 
 def _board_read(db: Session, board: Board) -> BoardRead:
@@ -43,6 +52,39 @@ def _board_read(db: Session, board: Board) -> BoardRead:
         created_at=board.created_at,
         lists=lists_out,
         labels=labels,
+    )
+
+
+@router.get("/{board_id}/export")
+def export_board_tasks(
+    board_id: int,
+    file_format: ExportFormat = Query(ExportFormat.csv, alias="file_format"),
+    db: Session = Depends(get_db),
+):
+    board = (
+        db.query(Board)
+        .options(
+            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.assignees),
+            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.labels),
+        )
+        .filter(Board.id == board_id)
+        .first()
+    )
+    if not board:
+        raise HTTPException(404, "Board not found")
+    headers, rows = build_export_matrix(db, board)
+    ext = "csv" if file_format == ExportFormat.csv else "xlsx"
+    filename = f"board-{board_id}-tasks.{ext}"
+    if file_format == ExportFormat.csv:
+        body = matrix_to_csv(headers, rows)
+        media = "text/csv; charset=utf-8"
+    else:
+        body = matrix_to_xlsx(headers, rows)
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return Response(
+        content=body,
+        media_type=media,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

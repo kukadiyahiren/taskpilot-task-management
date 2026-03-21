@@ -1,10 +1,13 @@
 import { Bell, Menu, Moon, Plus, Search, Sun } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useWorkspaceNotifications } from "../hooks/useWorkspaceNotifications.js";
 import { Button } from "./ui/button.jsx";
 import { cn } from "../lib/utils.js";
 
 export default function TopNav({ onNewTask, onOpenMobileMenu, dark, onToggleDark }) {
   const { pathname } = useLocation();
+  const { unreadCount } = useWorkspaceNotifications();
+  const notifLabel = unreadCount > 99 ? "99+" : unreadCount > 0 ? String(unreadCount) : null;
   const boardActive = pathname.startsWith("/board");
 
   return (
@@ -44,14 +47,18 @@ export default function TopNav({ onNewTask, onOpenMobileMenu, dark, onToggleDark
         >
           {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
-        <button
-          type="button"
+        <Link
+          to="/notifications"
           className="relative rounded-xl p-2.5 text-slate-500 transition hover:bg-slate-100"
-          aria-label="Notifications"
+          aria-label={notifLabel ? `Notifications, ${unreadCount} unread` : "Notifications"}
         >
           <Bell className="h-5 w-5" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-        </button>
+          {notifLabel != null && (
+            <span className="absolute right-1 top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+              {notifLabel}
+            </span>
+          )}
+        </Link>
       </div>
 
       <div className="hidden shrink-0 items-center rounded-xl border border-slate-200 bg-slate-50 p-1 sm:flex">

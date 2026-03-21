@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Bell, ChevronDown, Download } from "lucide-react";
-import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import { ActivityList } from "../components/dashboard/ActivityList.jsx";
 import { MeetingsPanel } from "../components/dashboard/MeetingsPanel.jsx";
@@ -19,6 +19,7 @@ import {
   qk,
 } from "../hooks/useDashboardData.js";
 import { useCurrentUser } from "../hooks/useCurrentUser.js";
+import { useWorkspaceNotifications } from "../hooks/useWorkspaceNotifications.js";
 import { useOverdueFromBoard } from "../hooks/useOverdueFromBoard.js";
 import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
 import {
@@ -30,6 +31,7 @@ import {
 } from "../lib/dashboardFallbacks.js";
 import { resolveQueryData } from "../lib/resolveQueryData.js";
 import { seriesTrend } from "../lib/trends.js";
+import { downloadBoardExport } from "../lib/downloadBoardExport.js";
 import { firstNameFromName, initialsFromName } from "../lib/userDisplay.js";
 
 export default function Dashboard() {
@@ -37,6 +39,9 @@ export default function Dashboard() {
   const qc = useQueryClient();
   const meQ = useCurrentUser();
   const me = meQ.data;
+  const { unreadCount: notifUnread } = useWorkspaceNotifications();
+  const notifBadge =
+    notifUnread > 99 ? "99+" : notifUnread > 0 ? String(notifUnread) : null;
   const greetName = firstNameFromName(me?.name);
   const chipLetter = me
     ? initialsFromName(me.name).slice(0, 1)
@@ -97,6 +102,21 @@ export default function Dashboard() {
   const sprintName = board?.name ?? "Q1 2026 Sprint";
   const statsReady = stats != null;
 
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportErr, setExportErr] = useState("");
+
+  async function handleBoardExport(fmt) {
+    setExportErr("");
+    setExportBusy(true);
+    try {
+      await downloadBoardExport(boardId, fmt);
+    } catch (e) {
+      setExportErr(e?.message || "Export failed");
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   return (
     <Layout onNewTask={handleNewTask}>
       <div className="min-h-full bg-[#f8fafc] p-4 sm:p-6 lg:p-8">
@@ -110,18 +130,53 @@ export default function Dashboard() {
                 Your team&apos;s task overview — {sprintName} · Last updated just now
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="md" className="gap-2 font-medium">
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex flex-wrap items-center gap-2">
+              <Link
+                to="/notifications"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              >
                 <Bell className="h-4 w-4 text-slate-600" />
                 Notifications
-                <Badge variant="default" className="ml-1 bg-red-500 text-white">
-                  3
-                </Badge>
-              </Button>
-              <Button variant="outline" size="md" className="gap-2 font-medium">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
+                {notifBadge != null && (
+                  <Badge variant="default" className="ml-1 bg-red-500 text-white">
+                    {notifBadge}
+                  </Badge>
+                )}
+              </Link>
+              <details className="relative">
+                <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+                  <Download className="h-4 w-4 text-slate-600" />
+                  {exportBusy ? "Exporting…" : "Export"}
+                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                </summary>
+                <div className="absolute right-0 z-30 mt-1 min-w-[12rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                  <button
+                    type="button"
+                    disabled={exportBusy}
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    onClick={(e) => {
+                      const d = e.currentTarget.closest("details");
+                      if (d) d.open = false;
+                      void handleBoardExport("csv");
+                    }}
+                  >
+                    Download CSV
+                  </button>
+                  <button
+                    type="button"
+                    disabled={exportBusy}
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    onClick={(e) => {
+                      const d = e.currentTarget.closest("details");
+                      if (d) d.open = false;
+                      void handleBoardExport("xlsx");
+                    }}
+                  >
+                    Download Excel (.xlsx)
+                  </button>
+                </div>
+              </details>
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
@@ -132,6 +187,10 @@ export default function Dashboard() {
                 Viewing as: {me?.role ?? "Member"}
                 <ChevronDown className="h-4 w-4 text-slate-400" />
               </button>
+              </div>
+              {exportErr && (
+                <p className="max-w-sm text-right text-xs text-red-600">{exportErr}</p>
+              )}
             </div>
           </div>
 

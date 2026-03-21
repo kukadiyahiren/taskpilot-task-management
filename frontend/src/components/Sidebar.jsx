@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useBoard, useDashboardStats, useWorkspaceMeetings } from "../hooks/useDashboardData.js";
 import { authMeQueryKey, useCurrentUser } from "../hooks/useCurrentUser.js";
+import { useWorkspaceNotifications } from "../hooks/useWorkspaceNotifications.js";
 import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
 import { FALLBACK_BOARD, FALLBACK_MEETINGS, FALLBACK_STATS } from "../lib/dashboardFallbacks.js";
 import { clearAccessToken } from "../lib/authStorage.js";
@@ -107,6 +108,9 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
   const taskBoardBadge = boardRes.data != null ? countBoardTasks(boardRes.data) : "—";
   const myBadge = statsRes.data?.my_tasks ?? "—";
   const meetingsBadge = meetingsRes.data != null ? meetingsRes.data.length : "—";
+  const { unreadCount: notificationUnread } = useWorkspaceNotifications();
+  const notificationBadge =
+    notificationUnread > 99 ? "99+" : notificationUnread > 0 ? notificationUnread : undefined;
 
   const shell = (
     <>
@@ -166,7 +170,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
           <div className="space-y-0.5">
             <NavItem to="/ai" icon={Sparkles} label="AI Assistant" tag="NEW" collapsed={collapsed} />
             <PlaceholderItem icon={Search} label="Search" collapsed={collapsed} />
-            <PlaceholderItem icon={Bell} label="Notifications" badge={3} collapsed={collapsed} />
+            <NavItem to="/notifications" icon={Bell} label="Notifications" badge={notificationBadge} collapsed={collapsed} />
           </div>
         </div>
       </nav>

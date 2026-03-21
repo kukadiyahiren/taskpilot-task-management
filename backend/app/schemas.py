@@ -138,6 +138,14 @@ class TaskSummary(BaseModel):
     labels: list[LabelRead] = []
 
 
+class MyTaskSummary(TaskSummary):
+    """Assigned-to-me task with board/column names for list views."""
+
+    board_id: int = 0
+    list_name: str = ""
+    board_name: str = ""
+
+
 class TaskRead(TaskSummary):
     description: str | None
     created_at: datetime

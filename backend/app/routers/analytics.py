@@ -5,7 +5,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Board, BoardList, Meeting, Task, Workspace
+from app.deps import get_effective_user_id
+from app.models import Board, BoardList, Meeting, Task, Workspace, task_assignees
 from app.schemas import AnalyticsPoint, DashboardStats
 
 router = APIRouter(tags=["analytics"])
@@ -16,6 +17,7 @@ def dashboard_stats(
     workspace_id: int = Query(1),
     board_id: int | None = Query(None),
     db: Session = Depends(get_db),
+    user_id: int = Depends(get_effective_user_id),
 ):
     if not db.get(Workspace, workspace_id):
         raise HTTPException(404, "Workspace not found")
@@ -50,8 +52,25 @@ def dashboard_stats(
     done_list_ids = {x.id for x in done_lists}
     done_count = len([t for t in tasks if t.list_id in done_list_ids])
     completion_rate_pct = round((done_count / team_tasks * 100) if team_tasks else 0.0, 1)
-    my_tasks = min(9, team_tasks)
-    my_due = len([t for t in tasks if t.due_date and 0 <= (t.due_date - today).days <= 7])
+    my_tasks = (
+        db.query(Task)
+        .join(task_assignees, Task.id == task_assignees.c.task_id)
+        .filter(task_assignees.c.user_id == user_id, Task.list_id.in_(list_ids))
+        .count()
+    )
+    week_end = today + timedelta(days=7)
+    my_due = (
+        db.query(Task)
+        .join(task_assignees, Task.id == task_assignees.c.task_id)
+        .filter(
+            task_assignees.c.user_id == user_id,
+            Task.list_id.in_(list_ids),
+            Task.due_date.isnot(None),
+            Task.due_date >= today,
+            Task.due_date <= week_end,
+        )
+        .count()
+    )
     week_start = today - timedelta(days=today.weekday())
     meetings_n = (
         db.query(Meeting)
@@ -67,7 +86,7 @@ def dashboard_stats(
         overdue_urgent=min(2, overdue_urgent) or (1 if overdue_tasks else 0),
         completion_rate_pct=completion_rate_pct,
         my_tasks=my_tasks,
-        my_due_this_week=my_due or 3,
+        my_due_this_week=my_due,
         meetings_this_week=max(meetings_n, 3),
         ai_tasks_generated=12,
     )

@@ -6,6 +6,7 @@ import MembersPage from "./pages/MembersPage.jsx";
 import MeetingsPage from "./pages/MeetingsPage.jsx";
 import FilesPage from "./pages/FilesPage.jsx";
 import AiAssistantPage from "./pages/AiAssistantPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import { getAccessToken } from "./lib/authStorage.js";
 
@@ -71,6 +72,14 @@ export default function App() {
         element={
           <RequireAuth>
             <AiAssistantPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <RequireAuth>
+            <NotificationsPage />
           </RequireAuth>
         }
       />
