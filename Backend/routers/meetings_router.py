@@ -2,7 +2,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import Any, List
@@ -12,6 +20,12 @@ import schemas
 import auth
 import permissions
 from database import get_db
+from realtime import schedule_board_event
+from services.ai_meeting_tasks import (
+    AIConfigError,
+    AIGenerationError,
+    generate_tasks_from_context,
+)
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
@@ -456,6 +470,7 @@ def update_proposal(
 def accept_proposal(
     meeting_id: int,
     proposal_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> Any:
@@ -497,4 +512,102 @@ def accept_proposal(
     row.card_id = card.id
     db.commit()
     db.refresh(card)
+    schedule_board_event(
+        background_tasks,
+        lst.board_id,
+        "card.created",
+        {
+            "board_id": lst.board_id,
+            "list_id": row.target_list_id,
+            "card_id": card.id,
+            "version": card.version,
+            "source": "meeting_proposal",
+            "meeting_id": meeting_id,
+        },
+    )
     return card
+
+
+@router.post(
+    "/{meeting_id}/proposals/ai-suggest",
+    response_model=List[schemas.AiSuggestedTask],
+)
+async def ai_suggest_proposals(
+    meeting_id: int,
+    body: schemas.AiMeetingTasksRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+) -> Any:
+    permissions.require_meeting_manage(db, current_user, meeting_id)
+    meeting = permissions.get_meeting_or_404(db, meeting_id)
+    notes = (
+        db.query(models.MeetingNote)
+        .filter(models.MeetingNote.meeting_id == meeting_id)
+        .order_by(models.MeetingNote.created_at.asc())
+        .all()
+    )
+    combined = "\n\n".join(n.body for n in notes)
+    try:
+        raw = await generate_tasks_from_context(
+            meeting_title=meeting.title,
+            meeting_description=meeting.description,
+            notes_combined=combined,
+            max_tasks=body.max_tasks,
+            extra_context=body.extra_context,
+            model=body.model,
+        )
+    except AIConfigError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except AIGenerationError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return [schemas.AiSuggestedTask(**t) for t in raw]
+
+
+@router.post(
+    "/{meeting_id}/proposals/ai-generate",
+    response_model=List[schemas.TaskProposalResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def ai_generate_proposals(
+    meeting_id: int,
+    body: schemas.AiMeetingTasksRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+) -> Any:
+    permissions.require_meeting_manage(db, current_user, meeting_id)
+    meeting = permissions.get_meeting_or_404(db, meeting_id)
+    notes = (
+        db.query(models.MeetingNote)
+        .filter(models.MeetingNote.meeting_id == meeting_id)
+        .order_by(models.MeetingNote.created_at.asc())
+        .all()
+    )
+    combined = "\n\n".join(n.body for n in notes)
+    try:
+        raw = await generate_tasks_from_context(
+            meeting_title=meeting.title,
+            meeting_description=meeting.description,
+            notes_combined=combined,
+            max_tasks=body.max_tasks,
+            extra_context=body.extra_context,
+            model=body.model,
+        )
+    except AIConfigError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except AIGenerationError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    out: List[models.MeetingTaskProposal] = []
+    for t in raw:
+        row = models.MeetingTaskProposal(
+            meeting_id=meeting_id,
+            title=t["title"],
+            description=t.get("description"),
+            status=models.TaskProposalStatus.pending,
+        )
+        db.add(row)
+        out.append(row)
+    meeting.status = models.MeetingStatus.tasks_proposed
+    db.commit()
+    for row in out:
+        db.refresh(row)
+    return out

@@ -26,13 +26,14 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)) -> Any:
 
     hashed_password = auth.get_password_hash(user.password)
     # Public signup is always staff; hierarchy roles are assigned by directors.
+    reports_to = user.reports_to_id if user.reports_to_id else None
     new_user = models.User(
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
         full_name=user.full_name,
         role=models.RoleEnum.staff,
-        reports_to_id=user.reports_to_id,
+        reports_to_id=reports_to,
     )
     db.add(new_user)
     db.commit()

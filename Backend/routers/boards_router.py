@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import Any, List
@@ -8,6 +8,7 @@ import schemas
 import auth
 import permissions
 from database import get_db
+from realtime import schedule_board_event
 
 router = APIRouter(prefix="/boards", tags=["boards"])
 
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/boards", tags=["boards"])
 @router.post("/", response_model=schemas.BoardResponse, status_code=status.HTTP_201_CREATED)
 def create_board(
     board: schemas.BoardCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> Any:
@@ -28,6 +30,12 @@ def create_board(
         )
     )
     db.commit()
+    schedule_board_event(
+        background_tasks,
+        new_board.id,
+        "board.created",
+        {"board_id": new_board.id, "title": new_board.title},
+    )
     return new_board
 
 
@@ -134,6 +142,7 @@ def get_board_full(
 def update_board(
     board_id: int,
     body: schemas.BoardUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> Any:
@@ -143,12 +152,19 @@ def update_board(
         setattr(board, k, v)
     db.commit()
     db.refresh(board)
+    schedule_board_event(
+        background_tasks,
+        board_id,
+        "board.updated",
+        {"board_id": board_id, "title": board.title},
+    )
     return board
 
 
 @router.delete("/{board_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_board(
     board_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> None:
@@ -158,6 +174,9 @@ def delete_board(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the board owner or an executive can delete this board",
         )
+    schedule_board_event(
+        background_tasks, board_id, "board.deleted", {"board_id": board_id}
+    )
     db.delete(board)
     db.commit()
 
@@ -170,6 +189,7 @@ def delete_board(
 def add_board_member(
     board_id: int,
     body: schemas.BoardMemberCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> Any:
@@ -193,6 +213,12 @@ def add_board_member(
     db.add(row)
     db.commit()
     db.refresh(row)
+    schedule_board_event(
+        background_tasks,
+        board_id,
+        "board.members_changed",
+        {"board_id": board_id, "action": "added", "user_id": body.user_id},
+    )
     return schemas.BoardMemberResponse(
         id=row.id,
         board_id=row.board_id,
@@ -233,6 +259,7 @@ def list_board_members(
 def remove_board_member(
     board_id: int,
     user_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> None:
@@ -251,5 +278,11 @@ def remove_board_member(
     )
     if not row:
         raise HTTPException(status_code=404, detail="Member not found")
+    schedule_board_event(
+        background_tasks,
+        board_id,
+        "board.members_changed",
+        {"board_id": board_id, "action": "removed", "user_id": user_id},
+    )
     db.delete(row)
     db.commit()

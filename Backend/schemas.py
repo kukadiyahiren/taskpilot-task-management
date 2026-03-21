@@ -296,6 +296,17 @@ class TaskProposalBatchCreate(BaseModel):
     proposals: List[TaskProposalCreate]
 
 
+class AiMeetingTasksRequest(BaseModel):
+    max_tasks: int = Field(8, ge=1, le=20)
+    extra_context: Optional[str] = None
+    model: Optional[str] = None
+
+
+class AiSuggestedTask(BaseModel):
+    title: str
+    description: Optional[str] = None
+
+
 class TaskProposalUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None

@@ -9,6 +9,7 @@ from routers import (
     lists_router,
     meetings_router,
     users_router,
+    ws_router,
 )
 
 app = FastAPI(title="TaskFlow API", description="Boards, meetings, and role-based workflows")
@@ -28,10 +29,11 @@ app.include_router(boards_router.router)
 app.include_router(lists_router.router)
 app.include_router(cards_router.router)
 app.include_router(meetings_router.router)
+app.include_router(ws_router.router, prefix="/ws")
 
 
 @app.get("/")
 def read_root():
     return {
-        "message": "TaskFlow API — boards (Trello-style), meetings, dashboards. See /docs",
+        "message": "TaskFlow API — boards (Trello-style), meetings, dashboards, WebSocket /ws/boards/{id}. See /docs",
     }

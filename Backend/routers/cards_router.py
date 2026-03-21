@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Any, List, Optional
 
@@ -7,6 +7,7 @@ import schemas
 import auth
 import permissions
 from database import get_db
+from realtime import schedule_board_event
 
 router = APIRouter(tags=["cards"])
 
@@ -37,6 +38,7 @@ def log_activity(
 def create_card(
     list_id: int,
     card: schemas.CardCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> Any:
@@ -56,6 +58,17 @@ def create_card(
     log_activity(db, "card", new_card.id, current_user.id, "created")
     db.commit()
     db.refresh(new_card)
+    schedule_board_event(
+        background_tasks,
+        lst.board_id,
+        "card.created",
+        {
+            "board_id": lst.board_id,
+            "list_id": list_id,
+            "card_id": new_card.id,
+            "version": new_card.version,
+        },
+    )
     return new_card
 
 
@@ -79,6 +92,7 @@ def get_cards_for_list(
 def update_card(
     card_id: int,
     update_data: schemas.CardUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> Any:
@@ -121,17 +135,40 @@ def update_card(
         log_activity(db, "card", card.id, current_user.id, "updated", changes)
     db.commit()
     db.refresh(card)
+    lst_after = permissions.get_list_or_404(db, card.list_id)
+    if changes:
+        schedule_board_event(
+            background_tasks,
+            lst_after.board_id,
+            "card.updated",
+            {
+                "board_id": lst_after.board_id,
+                "list_id": card.list_id,
+                "card_id": card.id,
+                "version": card.version,
+            },
+        )
     return card
 
 
 @router.delete("/cards/{card_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_card(
     card_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> None:
     card = permissions.get_card_or_404(db, card_id)
     permissions.require_card_board_edit(db, current_user, card)
+    lst = permissions.get_list_or_404(db, card.list_id)
+    bid = lst.board_id
+    lid = card.list_id
+    schedule_board_event(
+        background_tasks,
+        bid,
+        "card.deleted",
+        {"board_id": bid, "list_id": lid, "card_id": card_id},
+    )
     db.delete(card)
     db.commit()
 

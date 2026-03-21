@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Any, List
 
@@ -7,6 +7,7 @@ import schemas
 import auth
 import permissions
 from database import get_db
+from realtime import schedule_board_event
 
 router = APIRouter(tags=["lists"])
 
@@ -19,6 +20,7 @@ router = APIRouter(tags=["lists"])
 def create_list(
     board_id: int,
     lst: schemas.ListCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> Any:
@@ -27,6 +29,12 @@ def create_list(
     db.add(new_list)
     db.commit()
     db.refresh(new_list)
+    schedule_board_event(
+        background_tasks,
+        board_id,
+        "list.created",
+        {"board_id": board_id, "list_id": new_list.id, "title": new_list.title},
+    )
     return new_list
 
 
@@ -49,6 +57,7 @@ def get_lists_for_board(
 def update_list(
     list_id: int,
     body: schemas.ListUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> Any:
@@ -59,6 +68,12 @@ def update_list(
         setattr(lst, k, v)
     db.commit()
     db.refresh(lst)
+    schedule_board_event(
+        background_tasks,
+        lst.board_id,
+        "list.updated",
+        {"board_id": lst.board_id, "list_id": lst.id},
+    )
     return lst
 
 
@@ -66,6 +81,7 @@ def update_list(
 def update_list_position(
     list_id: int,
     pos: schemas.ListUpdatePosition,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> Any:
@@ -74,16 +90,30 @@ def update_list_position(
     lst.position = pos.position
     db.commit()
     db.refresh(lst)
+    schedule_board_event(
+        background_tasks,
+        lst.board_id,
+        "list.updated",
+        {"board_id": lst.board_id, "list_id": lst.id, "position": lst.position},
+    )
     return lst
 
 
 @router.delete("/lists/{list_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_list(
     list_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ) -> None:
     lst = permissions.get_list_or_404(db, list_id)
     permissions.require_list_board_edit(db, current_user, lst)
+    bid = lst.board_id
+    schedule_board_event(
+        background_tasks,
+        bid,
+        "list.deleted",
+        {"board_id": bid, "list_id": list_id},
+    )
     db.delete(lst)
     db.commit()
