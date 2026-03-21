@@ -5,6 +5,7 @@ import { getAccessToken } from "../lib/authStorage.js";
 import { useCurrentUser } from "../hooks/useCurrentUser.js";
 import { hasPermission } from "../lib/rbac.js";
 import { priorityDot, priorityLabel } from "../lib/priority.js";
+import { formatHours } from "../lib/workloadHours.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { Spinner } from "./ui/spinner.jsx";
 
@@ -39,6 +40,8 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   const [titleEdit, setTitleEdit] = useState("");
   const [descEdit, setDescEdit] = useState("");
   const [dueDateEdit, setDueDateEdit] = useState("");
+  const [estimateEdit, setEstimateEdit] = useState("");
+  const [loggedEdit, setLoggedEdit] = useState("");
   const [teamUsers, setTeamUsers] = useState([]);
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [exiting, setExiting] = useState(false);
@@ -80,6 +83,8 @@ export default function TaskModal({ taskId, boardId, onClose }) {
     setTitleEdit(t.title);
     setDescEdit(t.description ?? "");
     setDueDateEdit(t.due_date ?? "");
+    setEstimateEdit(t.estimate_hours != null ? String(t.estimate_hours) : "");
+    setLoggedEdit(String(t.logged_hours ?? 0));
     setAssigneeIds((t.assignees ?? []).map((a) => a.id));
   }, [taskId]);
 
@@ -202,6 +207,74 @@ export default function TaskModal({ taskId, boardId, onClose }) {
     } catch (e) {
       console.error(e);
       setDueDateEdit(task.due_date ?? "");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveEstimateHours = async () => {
+    if (!task) return;
+    const raw = estimateEdit.trim();
+    let next = null;
+    if (raw !== "") {
+      const n = Number(raw);
+      if (Number.isNaN(n) || n < 0) {
+        setEstimateEdit(task.estimate_hours != null ? String(task.estimate_hours) : "");
+        return;
+      }
+      next = n;
+    }
+    const prev = task.estimate_hours ?? null;
+    if (next === prev) return;
+    setSaving(true);
+    try {
+      const updated = await api.patch(`/tasks/${taskId}`, { estimate_hours: next });
+      setTask(updated);
+      setEstimateEdit(updated.estimate_hours != null ? String(updated.estimate_hours) : "");
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+      setEstimateEdit(task.estimate_hours != null ? String(task.estimate_hours) : "");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveLoggedHours = async () => {
+    if (!task) return;
+    const raw = loggedEdit.trim();
+    const n = raw === "" ? 0 : Number(raw);
+    if (Number.isNaN(n) || n < 0) {
+      setLoggedEdit(String(task.logged_hours ?? 0));
+      return;
+    }
+    const prev = Number(task.logged_hours ?? 0);
+    if (n === prev) return;
+    setSaving(true);
+    try {
+      const updated = await api.patch(`/tasks/${taskId}`, { logged_hours: n });
+      setTask(updated);
+      setLoggedEdit(String(updated.logged_hours ?? 0));
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+      setLoggedEdit(String(task.logged_hours ?? 0));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearEstimateHours = async () => {
+    setEstimateEdit("");
+    if (task?.estimate_hours == null) return;
+    setSaving(true);
+    try {
+      const updated = await api.patch(`/tasks/${taskId}`, { estimate_hours: null });
+      setTask(updated);
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+      setEstimateEdit(task.estimate_hours != null ? String(task.estimate_hours) : "");
     } finally {
       setSaving(false);
     }
@@ -532,6 +605,87 @@ export default function TaskModal({ taskId, boardId, onClose }) {
             </div>
           </div>
 
+          <div className="mb-6 rounded-xl border border-border bg-muted/30 p-4">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workload</h3>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Original estimate and time logged (hours), similar to Jira. Remaining is estimate minus logged.
+            </p>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="flex min-w-[8rem] flex-col gap-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground" htmlFor={`task-est-${taskId}`}>
+                  Original estimate (h)
+                </label>
+                <input
+                  id={`task-est-${taskId}`}
+                  type="number"
+                  min={0}
+                  step={0.25}
+                  disabled={saving}
+                  value={estimateEdit}
+                  onChange={(e) => setEstimateEdit(e.target.value)}
+                  onBlur={() => void saveEstimateHours()}
+                  placeholder="e.g. 8"
+                  className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-brand-400/40 disabled:opacity-50"
+                />
+              </div>
+              <div className="flex min-w-[8rem] flex-col gap-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground" htmlFor={`task-log-${taskId}`}>
+                  Time logged (h)
+                </label>
+                <input
+                  id={`task-log-${taskId}`}
+                  type="number"
+                  min={0}
+                  step={0.25}
+                  disabled={saving}
+                  value={loggedEdit}
+                  onChange={(e) => setLoggedEdit(e.target.value)}
+                  onBlur={() => void saveLoggedHours()}
+                  className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-brand-400/40 disabled:opacity-50"
+                />
+              </div>
+              <div className="flex flex-col gap-1 pb-0.5">
+                <span className="text-[10px] font-semibold uppercase text-muted-foreground">Remaining</span>
+                <span className="text-sm font-semibold tabular-nums text-foreground">
+                  {task.remaining_estimate_hours != null ? `${formatHours(task.remaining_estimate_hours)}` : "—"}
+                </span>
+              </div>
+              {(estimateEdit || task.estimate_hours != null) && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void clearEstimateHours()}
+                  className="text-xs font-medium text-muted-foreground underline decoration-border hover:text-foreground disabled:opacity-50"
+                >
+                  Clear estimate
+                </button>
+              )}
+            </div>
+            {task.estimate_hours != null && task.estimate_hours > 0 && (
+              <div className="mt-3">
+                <div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
+                  <span>
+                    Logged {formatHours(task.logged_hours)} of {formatHours(task.estimate_hours)}
+                  </span>
+                  <span>
+                    {Math.min(100, Math.round((Number(task.logged_hours || 0) / task.estimate_hours) * 100))}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full rounded-full transition-all ${Number(task.logged_hours || 0) > task.estimate_hours ? "bg-red-500" : "bg-brand-500"}`}
+                    style={{
+                      width: `${Math.min(100, (Number(task.logged_hours || 0) / task.estimate_hours) * 100)}%`,
+                    }}
+                  />
+                </div>
+                {Number(task.logged_hours || 0) > task.estimate_hours && (
+                  <p className="mt-1 text-[11px] font-medium text-red-600 dark:text-red-400">Over original estimate</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="mb-6">
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Description
@@ -559,6 +713,8 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                   setTitleEdit(task.title);
                   setDescEdit(task.description ?? "");
                   setDueDateEdit(task.due_date ?? "");
+                  setEstimateEdit(task.estimate_hours != null ? String(task.estimate_hours) : "");
+                  setLoggedEdit(String(task.logged_hours ?? 0));
                 }}
                 className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted"
               >

@@ -169,6 +169,8 @@ def seed_if_empty(db: Session) -> None:
             priority=pri,
             position=i,
             due_date=date.today() + timedelta(days=i - 2),
+            estimate_hours=float(6 + i * 2),
+            logged_hours=float(i * 1.5),
             attachment_count=1 if i % 2 == 0 else 0,
         )
         db.add(t)

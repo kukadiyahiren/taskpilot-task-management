@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { columnStripe, priorityDot } from "../lib/priority.js";
+import { formatHours } from "../lib/workloadHours.js";
 import { cn } from "../lib/utils.js";
 
 function initials(name) {
@@ -84,6 +85,30 @@ const TaskCard = forwardRef(function TaskCard(
           </div>
         </div>
       )}
+      {(task.estimate_hours != null && task.estimate_hours > 0) || Number(task.logged_hours) > 0 ? (
+        <div className="mb-3">
+          <div className="mb-1 flex justify-between text-[10px] text-muted-foreground">
+            <span title="Time logged / Original estimate">Workload</span>
+            {task.estimate_hours != null && task.estimate_hours > 0 ? (
+              <span className="tabular-nums">
+                {formatHours(task.logged_hours)} / {formatHours(task.estimate_hours)}
+              </span>
+            ) : (
+              <span className="tabular-nums">{formatHours(task.logged_hours)} logged</span>
+            )}
+          </div>
+          {task.estimate_hours != null && task.estimate_hours > 0 ? (
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className={`h-full rounded-full transition-all ${Number(task.logged_hours || 0) > task.estimate_hours ? "bg-red-500" : "bg-violet-500"}`}
+                style={{
+                  width: `${Math.min(100, (Number(task.logged_hours || 0) / task.estimate_hours) * 100)}%`,
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="flex items-center justify-between border-t border-border pt-2">
         <div className="flex -space-x-2">
           {task.assignees?.slice(0, 3).map((u) => (

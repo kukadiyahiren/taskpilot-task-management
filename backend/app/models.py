@@ -10,6 +10,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -174,6 +175,8 @@ class Task(Base):
     )
     position: Mapped[int] = mapped_column(Integer, default=0)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    estimate_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
+    logged_hours: Mapped[float] = mapped_column(Float, default=0.0)
     attachment_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

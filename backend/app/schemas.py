@@ -172,6 +172,9 @@ class TaskSummary(BaseModel):
     priority: PriorityEnum
     position: int
     due_date: date | None
+    estimate_hours: float | None = None
+    logged_hours: float = 0.0
+    remaining_estimate_hours: float | None = None
     attachment_count: int
     comment_count: int = 0
     checklist_done: int = 0
@@ -203,6 +206,8 @@ class TaskCreate(BaseModel):
     description: str | None = None
     priority: PriorityEnum = PriorityEnum.medium
     due_date: date | None = None
+    estimate_hours: float | None = Field(default=None, ge=0)
+    logged_hours: float = Field(default=0, ge=0)
     label_ids: list[int] = Field(default_factory=list)
     assignee_ids: list[int] = Field(default_factory=list)
 
@@ -212,6 +217,8 @@ class TaskUpdate(BaseModel):
     description: str | None = None
     priority: PriorityEnum | None = None
     due_date: date | None = None
+    estimate_hours: float | None = Field(default=None, ge=0)
+    logged_hours: float | None = Field(default=None, ge=0)
     list_id: int | None = None
     position: int | None = None
     label_ids: list[int] | None = None

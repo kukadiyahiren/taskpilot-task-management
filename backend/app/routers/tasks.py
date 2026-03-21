@@ -316,6 +316,8 @@ def create_task(
         priority=Priority(body.priority.value),
         position=max_pos,
         due_date=body.due_date,
+        estimate_hours=body.estimate_hours,
+        logged_hours=float(body.logged_hours or 0),
     )
     db.add(task)
     db.flush()
@@ -353,6 +355,11 @@ def update_task(
     patch_fields = body.model_dump(exclude_unset=True)
     if "due_date" in patch_fields:
         task.due_date = patch_fields["due_date"]
+    if "estimate_hours" in patch_fields:
+        task.estimate_hours = patch_fields["estimate_hours"]
+    if "logged_hours" in patch_fields:
+        lh = patch_fields["logged_hours"]
+        task.logged_hours = 0.0 if lh is None else float(lh)
     if body.attachment_count is not None:
         task.attachment_count = body.attachment_count
     if body.list_id is not None:

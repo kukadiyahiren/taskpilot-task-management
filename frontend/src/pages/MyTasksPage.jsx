@@ -5,6 +5,7 @@ import TaskModal from "../components/TaskModal.jsx";
 import { api } from "../api/client.js";
 import { DEFAULT_BOARD_ID } from "../constants.js";
 import { priorityDot, priorityLabel } from "../lib/priority.js";
+import { formatHours } from "../lib/workloadHours.js";
 
 export default function MyTasksPage() {
   const navigate = useNavigate();
@@ -87,6 +88,18 @@ export default function MyTasksPage() {
                           Due {t.due_date}
                         </>
                       )}
+                      {(t.estimate_hours != null && t.estimate_hours > 0) || Number(t.logged_hours) > 0 ? (
+                        <>
+                          <span className="mx-1.5 text-muted-foreground/40">·</span>
+                          {t.estimate_hours != null && t.estimate_hours > 0 ? (
+                            <span title="Logged / estimate">
+                              {formatHours(t.logged_hours)} / {formatHours(t.estimate_hours)} h
+                            </span>
+                          ) : (
+                            <span>{formatHours(t.logged_hours)} logged</span>
+                          )}
+                        </>
+                      ) : null}
                     </p>
                     {(t.labels?.length > 0 || t.checklist_total > 0) && (
                       <div className="mt-2 flex flex-wrap items-center gap-2">

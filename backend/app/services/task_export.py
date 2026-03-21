@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Board, Task, User
 from app.rbac.scope import task_visible_for_user
-from app.services.task_summary import checklist_stats, comment_counts
+from app.services.task_summary import checklist_stats, comment_counts, remaining_estimate_hours
 
 HEADERS = [
     "Board",
@@ -18,6 +18,9 @@ HEADERS = [
     "Description",
     "Priority",
     "Due date",
+    "Estimate (h)",
+    "Logged (h)",
+    "Remaining (h)",
     "Assignees",
     "Labels",
     "Checklist done",
@@ -56,6 +59,9 @@ def build_export_matrix(
             if viewer is not None and not task_visible_for_user(db, viewer, t):
                 continue
             done, total = ck.get(t.id, (0, 0))
+            est = t.estimate_hours
+            logh = float(t.logged_hours or 0)
+            rem = remaining_estimate_hours(est, logh)
             rows.append(
                 [
                     board_name,
@@ -65,6 +71,9 @@ def build_export_matrix(
                     _norm_desc(t.description),
                     t.priority.value,
                     t.due_date.isoformat() if t.due_date else "",
+                    est if est is not None else "",
+                    logh,
+                    rem if rem is not None else "",
                     ", ".join(sorted(a.name for a in t.assignees)),
                     ", ".join(sorted(l.name for l in t.labels)),
                     done,

@@ -6,6 +6,12 @@ from app.schemas import LabelRead, PriorityEnum, TaskSummary
 from app.services.user_read import public_user_read
 
 
+def remaining_estimate_hours(estimate: float | None, logged: float | None) -> float | None:
+    if estimate is None:
+        return None
+    return max(0.0, float(estimate) - float(logged or 0))
+
+
 def comment_counts(db: Session, task_ids: list[int]) -> dict[int, int]:
     if not task_ids:
         return {}
@@ -43,6 +49,8 @@ def task_to_summary(
     checklist_done: int,
     checklist_total: int,
 ) -> TaskSummary:
+    est = task.estimate_hours
+    logh = float(task.logged_hours or 0)
     return TaskSummary(
         id=task.id,
         list_id=task.list_id,
@@ -50,6 +58,9 @@ def task_to_summary(
         priority=PriorityEnum(task.priority.value),
         position=task.position,
         due_date=task.due_date,
+        estimate_hours=est,
+        logged_hours=logh,
+        remaining_estimate_hours=remaining_estimate_hours(est, logh),
         attachment_count=task.attachment_count,
         comment_count=comment_count,
         checklist_done=checklist_done,
