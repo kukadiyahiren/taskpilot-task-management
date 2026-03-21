@@ -1,0 +1,52 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models import Comment, Task
+from app.schemas import CommentCreate, CommentRead, UserRead
+
+router = APIRouter(tags=["comments"])
+
+
+@router.get("/{task_id}/comments", response_model=list[CommentRead])
+def list_comments(task_id: int, db: Session = Depends(get_db)):
+    if not db.get(Task, task_id):
+        raise HTTPException(404, "Task not found")
+    rows = (
+        db.query(Comment)
+        .filter(Comment.task_id == task_id)
+        .order_by(Comment.created_at)
+        .all()
+    )
+    out = []
+    for c in rows:
+        out.append(
+            CommentRead(
+                id=c.id,
+                task_id=c.task_id,
+                user_id=c.user_id,
+                body=c.body,
+                created_at=c.created_at,
+                user=UserRead.model_validate(c.user),
+            )
+        )
+    return out
+
+
+@router.post("/{task_id}/comments", response_model=CommentRead)
+def post_comment(task_id: int, body: CommentCreate, db: Session = Depends(get_db), user_id: int = 1):
+    task = db.get(Task, task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    c = Comment(task_id=task_id, user_id=user_id, body=body.body)
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return CommentRead(
+        id=c.id,
+        task_id=c.task_id,
+        user_id=c.user_id,
+        body=c.body,
+        created_at=c.created_at,
+        user=UserRead.model_validate(c.user),
+    )

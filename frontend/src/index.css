@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased font-sans;
+}
+
+/* Dragging */
+.dragging-task {
+  @apply rotate-1 shadow-lg ring-2 ring-brand-400/40;
+}
