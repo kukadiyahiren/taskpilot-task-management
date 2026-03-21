@@ -8,10 +8,10 @@ import { api } from "../api/client.js";
 import { DEFAULT_BOARD_ID } from "../constants.js";
 import { downloadBoardExport } from "../lib/downloadBoardExport.js";
 import { registerTeammate } from "../lib/registerTeammate.js";
+import { useBoardWebSocket } from "../hooks/useBoardWebSocket.js";
 import { useBoardStore } from "../store/boardStore.js";
 
 const LIST_ACCENTS = ["blue", "orange", "purple", "green"];
-const POLL_MS = 4000;
 
 function filterTasksByMember(tasks, memberId) {
   if (!memberId) return tasks;
@@ -70,12 +70,14 @@ export default function BoardPage() {
       .catch(() => {});
   }, []);
 
+  useBoardWebSocket(boardId, { loadBoard, draggingRef, enabled: true });
+
   useEffect(() => {
-    const id = window.setInterval(() => {
-      if (document.visibilityState !== "visible" || draggingRef.current) return;
-      loadBoard(boardId);
-    }, POLL_MS);
-    return () => window.clearInterval(id);
+    const onVis = () => {
+      if (document.visibilityState === "visible" && !draggingRef.current) void loadBoard(boardId);
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, [boardId, loadBoard]);
 
   const onDragEnd = useCallback(

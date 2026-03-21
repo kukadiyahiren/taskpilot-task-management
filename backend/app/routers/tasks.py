@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.deps import get_effective_user_id
+from app.deps import get_effective_user, get_effective_user_id
+from app.rbac.deps import require_permission
+from app.rbac.scope import task_visible_for_user
+from app.realtime.board_hub import schedule_board_refresh
+from app.realtime.board_resolve import board_id_for_task, board_id_for_task_id
 from app.models import ActivityLog, BoardList, Checklist, ChecklistItem, Comment, Label, Priority, Task, User
 from app.schemas import (
     ChecklistCreate,
@@ -15,9 +19,9 @@ from app.schemas import (
     TaskRead,
     TaskSummary,
     TaskUpdate,
-    UserRead,
 )
 from app.services.task_summary import summarize_tasks
+from app.services.user_read import public_user_read
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -70,7 +74,7 @@ def _to_task_read(db: Session, task: Task) -> TaskRead:
             user_id=c.user_id,
             body=c.body,
             created_at=c.created_at,
-            user=UserRead.model_validate(c.user),
+            user=public_user_read(c.user),
         )
         for c in sorted(task.comments, key=lambda x: x.created_at)
     ]
@@ -85,9 +89,15 @@ def _to_task_read(db: Session, task: Task) -> TaskRead:
 
 
 @router.get("/{task_id}", response_model=TaskRead)
-def get_task(task_id: int, db: Session = Depends(get_db)):
+def get_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
+):
     task = _task_full_fixed(db, task_id)
     if not task:
+        raise HTTPException(404, "Task not found")
+    if not task_visible_for_user(db, viewer, task):
         raise HTTPException(404, "Task not found")
     return _to_task_read(db, task)
 
@@ -95,6 +105,7 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
 @router.post("", response_model=TaskRead)
 def create_task(
     body: TaskCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_effective_user_id),
 ):
@@ -121,6 +132,7 @@ def create_task(
         task.assignees = users
     _log_activity(db, board_id, user_id, "created", f"created '{task.title}'")
     db.commit()
+    schedule_board_refresh(background_tasks, board_id)
     task = _task_full_fixed(db, task.id)
     return _to_task_read(db, task)
 
@@ -129,6 +141,7 @@ def create_task(
 def update_task(
     task_id: int,
     body: TaskUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_effective_user_id),
 ):
@@ -166,6 +179,7 @@ def update_task(
     else:
         _log_activity(db, board_id, user_id, "updated", f"updated '{task.title}'")
     db.commit()
+    schedule_board_refresh(background_tasks, board_id)
     task = _task_full_fixed(db, task_id)
     return _to_task_read(db, task)
 
@@ -183,6 +197,7 @@ def _reindex_list(db: Session, list_id: int, exclude_task_id: int | None = None)
 def move_task(
     task_id: int,
     body: TaskMove,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_effective_user_id),
 ):
@@ -215,6 +230,7 @@ def move_task(
         f"moved '{task.title}' to {new_list.name}",
     )
     db.commit()
+    schedule_board_refresh(background_tasks, new_list.board_id)
     task = (
         db.query(Task)
         .options(selectinload(Task.assignees), selectinload(Task.labels))
@@ -225,17 +241,29 @@ def move_task(
 
 
 @router.delete("/{task_id}", status_code=204)
-def delete_task(task_id: int, db: Session = Depends(get_db)):
+def delete_task(
+    task_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("tasks.delete")),
+):
     task = db.get(Task, task_id)
     if not task:
         raise HTTPException(404, "Task not found")
+    board_id = board_id_for_task(db, task)
     db.delete(task)
     db.commit()
+    if board_id:
+        schedule_board_refresh(background_tasks, board_id)
 
 
 @router.post("/{task_id}/checklists/{checklist_id}/items", response_model=TaskRead)
 def add_checklist_item(
-    task_id: int, checklist_id: int, body: ChecklistItemCreate, db: Session = Depends(get_db)
+    task_id: int,
+    checklist_id: int,
+    body: ChecklistItemCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
 ):
     cl = db.get(Checklist, checklist_id)
     if not cl or cl.task_id != task_id:
@@ -243,17 +271,26 @@ def add_checklist_item(
     n = db.query(ChecklistItem).filter(ChecklistItem.checklist_id == checklist_id).count()
     db.add(ChecklistItem(checklist_id=checklist_id, title=body.title, position=n))
     db.commit()
+    bid = board_id_for_task_id(db, task_id)
+    schedule_board_refresh(background_tasks, bid)
     task = _task_full_fixed(db, task_id)
     return _to_task_read(db, task)
 
 
 @router.post("/{task_id}/checklists", response_model=TaskRead)
-def add_checklist(task_id: int, body: ChecklistCreate | None = None, db: Session = Depends(get_db)):
+def add_checklist(
+    task_id: int,
+    background_tasks: BackgroundTasks,
+    body: ChecklistCreate | None = None,
+    db: Session = Depends(get_db),
+):
     title = (body.title if body else None) or "Checklist"
     task = db.get(Task, task_id)
     if not task:
         raise HTTPException(404, "Task not found")
     db.add(Checklist(task_id=task_id, title=title))
     db.commit()
+    bid = board_id_for_task_id(db, task_id)
+    schedule_board_refresh(background_tasks, bid)
     task = _task_full_fixed(db, task_id)
     return _to_task_read(db, task)

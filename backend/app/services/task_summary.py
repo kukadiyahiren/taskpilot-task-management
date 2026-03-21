@@ -2,7 +2,8 @@ from sqlalchemy import Integer, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Checklist, ChecklistItem, Comment, Task
-from app.schemas import LabelRead, PriorityEnum, TaskSummary, UserRead
+from app.schemas import LabelRead, PriorityEnum, TaskSummary
+from app.services.user_read import public_user_read
 
 
 def comment_counts(db: Session, task_ids: list[int]) -> dict[int, int]:
@@ -53,7 +54,7 @@ def task_to_summary(
         comment_count=comment_count,
         checklist_done=checklist_done,
         checklist_total=checklist_total,
-        assignees=[UserRead.model_validate(u) for u in task.assignees],
+        assignees=[public_user_read(u) for u in task.assignees],
         labels=[LabelRead.model_validate(l) for l in task.labels],
     )
 

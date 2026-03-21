@@ -53,3 +53,14 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
+
+
+def get_effective_user(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_effective_user_id),
+) -> User:
+    """Resolved User for the current principal (JWT or demo user 1)."""
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user

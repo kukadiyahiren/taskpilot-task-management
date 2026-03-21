@@ -7,7 +7,12 @@ import MeetingsPage from "./pages/MeetingsPage.jsx";
 import FilesPage from "./pages/FilesPage.jsx";
 import AiAssistantPage from "./pages/AiAssistantPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
+import AccountPage from "./pages/AccountPage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import RequireRole from "./components/RequireRole.jsx";
+import StrategicDashboardPage from "./pages/StrategicDashboardPage.jsx";
+import TeamConsolePage from "./pages/TeamConsolePage.jsx";
 import { getAccessToken } from "./lib/authStorage.js";
 
 function RequireAuth({ children }) {
@@ -80,6 +85,42 @@ export default function App() {
         element={
           <RequireAuth>
             <NotificationsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/account"
+        element={
+          <RequireAuth>
+            <AccountPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <RequireAuth>
+            <SettingsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/strategic"
+        element={
+          <RequireAuth>
+            <RequireRole exactRole="director">
+              <StrategicDashboardPage />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/console/team"
+        element={
+          <RequireAuth>
+            <RequireRole minRole="manager">
+              <TeamConsolePage />
+            </RequireRole>
           </RequireAuth>
         }
       />

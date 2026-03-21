@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import SessionLocal, engine
 from app.models import Base
-from app.routers import activity, analytics, auth, boards, checklist, comments, meetings, tasks, users, workspaces
+from app.routers import activity, analytics, auth, boards, checklist, comments, meetings, tasks, users, workspaces, ws_board
 from app.seed import seed_if_empty
 
 
@@ -44,6 +44,7 @@ app.include_router(comments.router, prefix="/tasks")
 app.include_router(checklist.router)
 app.include_router(analytics.router)
 app.include_router(activity.router)
+app.include_router(ws_board.router)
 
 
 @app.get("/health")

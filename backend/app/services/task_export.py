@@ -6,7 +6,8 @@ import re
 
 from sqlalchemy.orm import Session
 
-from app.models import Board, Task
+from app.models import Board, Task, User
+from app.rbac.scope import task_visible_for_user
 from app.services.task_summary import checklist_stats, comment_counts
 
 HEADERS = [
@@ -34,10 +35,17 @@ def _norm_desc(text: str | None, max_len: int = 5000) -> str:
     return one_line[:max_len]
 
 
-def build_export_matrix(db: Session, board: Board) -> tuple[list[str], list[list]]:
+def build_export_matrix(
+    db: Session,
+    board: Board,
+    *,
+    viewer: User | None = None,
+) -> tuple[list[str], list[list]]:
     task_ids: list[int] = []
     for lst in board.lists:
         for t in lst.tasks:
+            if viewer is not None and not task_visible_for_user(db, viewer, t):
+                continue
             task_ids.append(t.id)
     cc = comment_counts(db, task_ids)
     ck = checklist_stats(db, task_ids)
@@ -45,6 +53,8 @@ def build_export_matrix(db: Session, board: Board) -> tuple[list[str], list[list
     rows: list[list] = []
     for lst in sorted(board.lists, key=lambda x: x.position):
         for t in sorted(lst.tasks, key=lambda x: x.position):
+            if viewer is not None and not task_visible_for_user(db, viewer, t):
+                continue
             done, total = ck.get(t.id, (0, 0))
             rows.append(
                 [

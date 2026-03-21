@@ -5,7 +5,7 @@ import { Eye, EyeOff, Lock, Mail, Users } from "lucide-react";
 import LoginHero from "../components/LoginHero.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import { Spinner } from "../components/ui/spinner.jsx";
-import { DEMO_LOGIN_EMAIL, DEMO_LOGIN_PASSWORD } from "../constants.js";
+import { DEMO_LOGIN_EMAIL, DEMO_LOGIN_PASSWORD, DEMO_RBAC_ACCOUNTS } from "../constants.js";
 import * as authApi from "../api/auth.js";
 import { authMeQueryKey } from "../hooks/useCurrentUser.js";
 import { clearAccessToken, getAccessToken, setAccessToken } from "../lib/authStorage.js";
@@ -112,22 +112,20 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setTab("signin")}
-                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 ${
-                  tab === "signin"
+                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 ${tab === "signin"
                     ? "bg-card text-foreground shadow-md"
                     : "text-muted-foreground hover:text-foreground"
-                }`}
+                  }`}
               >
                 Sign In
               </button>
               <button
                 type="button"
                 onClick={() => setTab("signup")}
-                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 ${
-                  tab === "signup"
+                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 ${tab === "signup"
                     ? "bg-card text-foreground shadow-md"
                     : "text-muted-foreground hover:text-foreground"
-                }`}
+                  }`}
               >
                 Create Account
               </button>
@@ -155,121 +153,121 @@ export default function LoginPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
-              {tab === "signup" && (
+                {tab === "signup" && (
+                  <div>
+                    <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
+                      Full name
+                    </label>
+                    <div className="relative">
+                      <Users className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        autoComplete="name"
+                        required={tab === "signup"}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Jamie Kim"
+                        className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-foreground shadow-sm outline-none ring-brand-500/0 transition placeholder:text-muted-foreground focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15 dark:bg-card"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
-                    Full name
+                  <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
+                    Work Email
                   </label>
                   <div className="relative">
-                    <Users className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                    <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     <input
-                      id="name"
-                      name="name"
-                      type="text"
-                      autoComplete="name"
-                      required={tab === "signup"}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Jamie Kim"
-                      className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-foreground shadow-sm outline-none ring-brand-500/0 transition placeholder:text-muted-foreground focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15 dark:bg-card"
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-foreground shadow-sm outline-none ring-brand-500/0 transition placeholder:text-muted-foreground focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
                     />
                   </div>
                 </div>
-              )}
 
-              <div>
-                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
-                  Work Email
-                </label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-foreground shadow-sm outline-none ring-brand-500/0 transition placeholder:text-muted-foreground focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <label htmlFor="password" className="text-sm font-medium text-foreground">
-                    Password
-                  </label>
-                  {tab === "signin" && (
-                    <a
-                      href="#forgot"
-                      className="text-sm font-medium text-brand-600 transition hover:text-brand-700"
-                      onClick={(e) => e.preventDefault()}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <label htmlFor="password" className="text-sm font-medium text-foreground">
+                      Password
+                    </label>
+                    {tab === "signin" && (
+                      <a
+                        href="#forgot"
+                        className="text-sm font-medium text-brand-600 transition hover:text-brand-700"
+                        onClick={(e) => e.preventDefault()}
+                      >
+                        Forgot password?
+                      </a>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete={tab === "signin" ? "current-password" : "new-password"}
+                      required
+                      minLength={tab === "signup" ? 6 : undefined}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Your password"
+                      className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-12 text-foreground shadow-sm outline-none ring-brand-500/0 transition placeholder:text-muted-foreground focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
-                      Forgot password?
-                    </a>
-                  )}
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                  {tab === "signup" && <p className="mt-1 text-xs text-muted-foreground">At least 6 characters.</p>}
                 </div>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete={tab === "signin" ? "current-password" : "new-password"}
-                    required
-                    minLength={tab === "signup" ? 6 : undefined}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Your password"
-                    className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-12 text-foreground shadow-sm outline-none ring-brand-500/0 transition placeholder:text-muted-foreground focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
-                {tab === "signup" && <p className="mt-1 text-xs text-muted-foreground">At least 6 characters.</p>}
-              </div>
 
-              {tab === "signin" && (
-                <label className="flex cursor-pointer items-center gap-2.5 text-sm text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                    className="h-4 w-4 rounded border-border text-brand-600 focus:ring-brand-500"
-                  />
-                  Remember me for 30 days
-                </label>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                aria-busy={loading}
-                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:from-brand-500 hover:to-indigo-500 hover:shadow-xl hover:shadow-brand-500/30 focus:outline-none focus:ring-4 focus:ring-brand-500/30 active:scale-[0.99] disabled:opacity-60"
-              >
-                {loading && <Spinner size="md" className="text-white" />}
-                {loading ? (
-                  tab === "signin" ? "Signing in…" : "Creating account…"
-                ) : tab === "signin" ? (
-                  <>
-                    Sign In
-                    <span className="transition group-hover:translate-x-0.5" aria-hidden>
-                      →
-                    </span>
-                  </>
-                ) : (
-                  "Create account"
+                {tab === "signin" && (
+                  <label className="flex cursor-pointer items-center gap-2.5 text-sm text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className="h-4 w-4 rounded border-border text-brand-600 focus:ring-brand-500"
+                    />
+                    Remember me for 30 days
+                  </label>
                 )}
-              </button>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  aria-busy={loading}
+                  className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:from-brand-500 hover:to-indigo-500 hover:shadow-xl hover:shadow-brand-500/30 focus:outline-none focus:ring-4 focus:ring-brand-500/30 active:scale-[0.99] disabled:opacity-60"
+                >
+                  {loading && <Spinner size="md" className="text-white" />}
+                  {loading ? (
+                    tab === "signin" ? "Signing in…" : "Creating account…"
+                  ) : tab === "signin" ? (
+                    <>
+                      Sign In
+                      <span className="transition group-hover:translate-x-0.5" aria-hidden>
+                        →
+                      </span>
+                    </>
+                  ) : (
+                    "Create account"
+                  )}
+                </button>
               </form>
             </div>
 
@@ -296,6 +294,15 @@ export default function LoginPage() {
                 Seeded users use the same password after migration +{" "}
                 <code className="rounded bg-muted px-1">python scripts/set_demo_passwords.py</code> on old DBs.
               </p>
+              <p className="mt-3 text-xs font-semibold text-foreground">RBAC demo (password: demo)</p>
+              <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                {DEMO_RBAC_ACCOUNTS.map(({ email, label }) => (
+                  <li key={email}>
+                    <span className="text-foreground">{label}</span>:{" "}
+                    <code className="rounded bg-card px-1 font-mono text-[10px]">{email}</code>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>

@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_effective_user_id
 from app.models import Comment, Task
-from app.schemas import CommentCreate, CommentRead, UserRead
+from app.realtime.board_hub import schedule_board_refresh
+from app.realtime.board_resolve import board_id_for_task
+from app.schemas import CommentCreate, CommentRead
+from app.services.user_read import public_user_read
 
 router = APIRouter(tags=["comments"])
 
@@ -28,7 +31,7 @@ def list_comments(task_id: int, db: Session = Depends(get_db)):
                 user_id=c.user_id,
                 body=c.body,
                 created_at=c.created_at,
-                user=UserRead.model_validate(c.user),
+                user=public_user_read(c.user),
             )
         )
     return out
@@ -38,6 +41,7 @@ def list_comments(task_id: int, db: Session = Depends(get_db)):
 def post_comment(
     task_id: int,
     body: CommentCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_effective_user_id),
 ):
@@ -48,11 +52,13 @@ def post_comment(
     db.add(c)
     db.commit()
     db.refresh(c)
+    bid = board_id_for_task(db, task)
+    schedule_board_refresh(background_tasks, bid)
     return CommentRead(
         id=c.id,
         task_id=c.task_id,
         user_id=c.user_id,
         body=c.body,
         created_at=c.created_at,
-        user=UserRead.model_validate(c.user),
+        user=public_user_read(c.user),
     )

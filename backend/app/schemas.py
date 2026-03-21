@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class PriorityEnum(str, Enum):
@@ -22,7 +22,7 @@ class UserBase(BaseModel):
     email: str
     name: str
     avatar_url: str | None = None
-    role: str = "Member"
+    role: str = "staff"
 
 
 class UserCreate(UserBase):
@@ -33,6 +33,21 @@ class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: datetime
+    department_id: int | None = None
+    manager_id: int | None = None
+    permissions: list[str] = Field(default_factory=list)
+    role_permissions: list[str] = Field(default_factory=list)
+    extra_permissions: list[str] = Field(default_factory=list)
+
+    @field_validator("extra_permissions", mode="before")
+    @classmethod
+    def _extra_permissions_db_none(cls, v):
+        """ORM / MySQL JSON column often returns NULL → treat as []."""
+        return [] if v is None else v
+
+
+class UserExtraPermissionsUpdate(BaseModel):
+    extra_permissions: list[str] = Field(default_factory=list)
 
 
 class UserRegister(BaseModel):

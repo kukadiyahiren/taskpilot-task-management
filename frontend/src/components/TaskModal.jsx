@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api/client.js";
+import { useCurrentUser } from "../hooks/useCurrentUser.js";
+import { hasPermission } from "../lib/rbac.js";
 import { priorityDot, priorityLabel } from "../lib/priority.js";
 import { useBoardStore } from "../store/boardStore.js";
 import { Spinner } from "./ui/spinner.jsx";
@@ -26,6 +28,8 @@ function userInitials(name) {
 }
 
 export default function TaskModal({ taskId, boardId, onClose }) {
+  const meQ = useCurrentUser();
+  const canDelete = hasPermission(meQ.data, "tasks.delete");
   const { loadBoard, refreshTaskInBoard } = useBoardStore();
   const [task, setTask] = useState(null);
   const [tab, setTab] = useState("comments");
@@ -167,9 +171,8 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   if (!task) {
     return createPortal(
       <div
-        className={`fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm transition-opacity duration-200 ease-out dark:bg-black/55 ${
-          exiting ? "opacity-0" : "opacity-100"
-        }`}
+        className={`fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm transition-opacity duration-200 ease-out dark:bg-black/55 ${exiting ? "opacity-0" : "opacity-100"
+          }`}
       >
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-8 py-6 text-foreground shadow-modal dark:shadow-modal-dark">
           <Spinner size="lg" className="text-primary" />
@@ -189,9 +192,8 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   const modal = (
     <div
       role="presentation"
-      className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/45 p-4 backdrop-blur-sm transition-opacity duration-200 ease-out dark:bg-black/55 md:pt-12 ${
-        exiting ? "pointer-events-none opacity-0" : "opacity-100"
-      }`}
+      className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/45 p-4 backdrop-blur-sm transition-opacity duration-200 ease-out dark:bg-black/55 md:pt-12 ${exiting ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) requestClose();
       }}
@@ -199,9 +201,8 @@ export default function TaskModal({ taskId, boardId, onClose }) {
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-modal transition-all duration-200 ease-out dark:shadow-modal-dark md:flex-row ${
-          exiting ? "translate-y-1 scale-[0.98] opacity-0" : "translate-y-0 scale-100 opacity-100"
-        }`}
+        className={`relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-modal transition-all duration-200 ease-out dark:shadow-modal-dark md:flex-row ${exiting ? "translate-y-1 scale-[0.98] opacity-0" : "translate-y-0 scale-100 opacity-100"
+          }`}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <button
@@ -325,9 +326,8 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                   key={k}
                   type="button"
                   onClick={() => setTab(k)}
-                  className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-                    tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   {lab}
                 </button>
@@ -421,16 +421,15 @@ export default function TaskModal({ taskId, boardId, onClose }) {
             ))}
           </div>
 
-          <button
-            type="button"
-            disabled={deleting}
-            aria-busy={deleting}
-            onClick={() => void removeTask()}
-            className="mt-10 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-sm font-medium text-red-700 hover:bg-red-500/15 disabled:opacity-50 dark:text-red-300"
-          >
-            {deleting && <Spinner size="sm" className="text-red-700 dark:text-red-300" />}
-            {deleting ? "Deleting…" : "Delete task"}
-          </button>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={removeTask}
+              className="mt-10 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-sm font-medium text-red-700 hover:bg-red-500/15 dark:text-red-300"
+            >
+              Delete task
+            </button>
+          )}
         </aside>
       </div>
     </div>

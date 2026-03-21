@@ -1,15 +1,22 @@
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.deps import get_effective_user_id
-from app.models import Board, BoardList, Meeting, Task, Workspace, task_assignees
+from app.deps import get_effective_user
+from app.models import Board, BoardList, Meeting, Task, User, Workspace, task_assignees
+from app.rbac.scope import task_visible_for_user
 from app.schemas import AnalyticsPoint, DashboardStats
 
 router = APIRouter(tags=["analytics"])
+
+
+def _dt_as_utc(dt: datetime) -> datetime:
+    """MySQL often returns naive datetimes; treat them as UTC for comparisons."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 @router.get("/dashboard/stats", response_model=DashboardStats)
@@ -17,7 +24,7 @@ def dashboard_stats(
     workspace_id: int = Query(1),
     board_id: int | None = Query(None),
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_effective_user_id),
+    user: User = Depends(get_effective_user),
 ):
     if not db.get(Workspace, workspace_id):
         raise HTTPException(404, "Workspace not found")
@@ -38,7 +45,13 @@ def dashboard_stats(
             ai_tasks_generated=12,
         )
     list_ids = [x.id for x in db.query(BoardList).filter(BoardList.board_id.in_(board_ids)).all()]
-    tasks = db.query(Task).filter(Task.list_id.in_(list_ids)).all()
+    tasks = (
+        db.query(Task)
+        .options(selectinload(Task.assignees))
+        .filter(Task.list_id.in_(list_ids))
+        .all()
+    )
+    tasks = [t for t in tasks if task_visible_for_user(db, user, t)]
     today = date.today()
     team_tasks = len(tasks)
     overdue = [t for t in tasks if t.due_date and t.due_date < today]
@@ -55,7 +68,7 @@ def dashboard_stats(
     my_tasks = (
         db.query(Task)
         .join(task_assignees, Task.id == task_assignees.c.task_id)
-        .filter(task_assignees.c.user_id == user_id, Task.list_id.in_(list_ids))
+        .filter(task_assignees.c.user_id == user.id, Task.list_id.in_(list_ids))
         .count()
     )
     week_end = today + timedelta(days=7)
@@ -63,7 +76,7 @@ def dashboard_stats(
         db.query(Task)
         .join(task_assignees, Task.id == task_assignees.c.task_id)
         .filter(
-            task_assignees.c.user_id == user_id,
+            task_assignees.c.user_id == user.id,
             Task.list_id.in_(list_ids),
             Task.due_date.isnot(None),
             Task.due_date >= today,
@@ -97,28 +110,36 @@ def task_analytics(
     board_id: int = Query(...),
     days: int = Query(21, ge=1, le=90),
     db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
 ):
     if not db.get(Board, board_id):
         raise HTTPException(404, "Board not found")
     list_ids = [x.id for x in db.query(BoardList).filter(BoardList.board_id == board_id).all()]
     end = date.today()
     start = end - timedelta(days=days - 1)
+    all_tasks = (
+        db.query(Task)
+        .options(selectinload(Task.assignees))
+        .filter(Task.list_id.in_(list_ids))
+        .all()
+    )
+    visible = [t for t in all_tasks if task_visible_for_user(db, viewer, t)]
     points: list[AnalyticsPoint] = []
     for i in range(days):
         d = start + timedelta(days=i)
         day_start = datetime.combine(d, datetime.min.time()).replace(tzinfo=timezone.utc)
         day_end = datetime.combine(d, datetime.max.time()).replace(tzinfo=timezone.utc)
-        created = db.scalar(
-            select(func.count())
-            .select_from(Task)
-            .where(Task.list_id.in_(list_ids), Task.created_at >= day_start, Task.created_at <= day_end)
+        created = sum(
+            1
+            for t in visible
+            if t.created_at and day_start <= _dt_as_utc(t.created_at) <= day_end
         )
         moved_done = 0
         points.append(
             AnalyticsPoint(
                 day=d.isoformat(),
                 completed=int(moved_done) + (i % 4),
-                created=int(created or 0) + (i % 3),
+                created=int(created) + (i % 3),
                 overdue=max(0, (i % 5) - 3),
             )
         )

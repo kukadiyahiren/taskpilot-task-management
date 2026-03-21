@@ -33,6 +33,7 @@ import {
 import { resolveQueryData } from "../lib/resolveQueryData.js";
 import { seriesTrend } from "../lib/trends.js";
 import { downloadBoardExport } from "../lib/downloadBoardExport.js";
+import { dashboardCopyForRole, hasPermission, roleAtLeast, ROLE_LABELS } from "../lib/rbac.js";
 import { firstNameFromName, initialsFromName } from "../lib/userDisplay.js";
 
 export default function Dashboard() {
@@ -109,6 +110,11 @@ export default function Dashboard() {
 
   const sprintName = board?.name ?? "Q1 2026 Sprint";
   const statsReady = stats != null;
+  const rbacRole = me?.role ?? "staff";
+  const dashCopy = dashboardCopyForRole(rbacRole);
+  const canExport = hasPermission(me, "nav.export");
+  const showMeetingsPanel = hasPermission(me, "nav.meetings");
+  const showAiMetric = roleAtLeast(me, "manager");
 
   const [exportBusy, setExportBusy] = useState(false);
   const [exportErr, setExportErr] = useState("");
@@ -135,72 +141,70 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold tracking-tight text-foreground">
                 Good morning, {meQ.isPending ? "…" : greetName}
               </h1>
+              <p className="mt-1 text-sm font-semibold text-primary">{dashCopy.title}</p>
               <p className="mt-1 text-muted-foreground">
-                Your team&apos;s task overview — {sprintName} · Last updated just now
+                {dashCopy.subtitle} · {sprintName}
               </p>
             </div>
             <div className="flex flex-col items-end gap-1">
               <div className="flex flex-wrap items-center gap-2">
-              <Link
-                to="/notifications"
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted"
-              >
-                <Bell className="h-4 w-4 text-muted-foreground" />
-                Notifications
-                {notifBadge != null && (
-                  <Badge variant="default" className="ml-1 bg-red-500 text-white">
-                    {notifBadge}
-                  </Badge>
+                <Link
+                  to="/notifications"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted"
+                >
+                  <Bell className="h-4 w-4 text-muted-foreground" />
+                  Notifications
+                  {notifBadge != null && (
+                    <Badge variant="default" className="ml-1 bg-red-500 text-white">
+                      {notifBadge}
+                    </Badge>
+                  )}
+                </Link>
+                {canExport && (
+                  <details className="relative">
+                    <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm hover:bg-muted [&::-webkit-details-marker]:hidden">
+                      <Download className="h-4 w-4 text-muted-foreground" />
+                      {exportBusy ? "Exporting…" : "Export"}
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </summary>
+                    <div className="absolute right-0 z-30 mt-1 min-w-[12rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg">
+                      <button
+                        type="button"
+                        disabled={exportBusy}
+                        className="block w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
+                        onClick={(e) => {
+                          const d = e.currentTarget.closest("details");
+                          if (d) d.open = false;
+                          void handleBoardExport("csv");
+                        }}
+                      >
+                        Download CSV
+                      </button>
+                      <button
+                        type="button"
+                        disabled={exportBusy}
+                        className="block w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
+                        onClick={(e) => {
+                          const d = e.currentTarget.closest("details");
+                          if (d) d.open = false;
+                          void handleBoardExport("xlsx");
+                        }}
+                      >
+                        Download Excel (.xlsx)
+                      </button>
+                    </div>
+                  </details>
                 )}
-              </Link>
-              <details className="relative">
-                <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm hover:bg-muted [&::-webkit-details-marker]:hidden">
-                  <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  {exportBusy && <Spinner size="sm" />}
-                  {exportBusy ? "Exporting…" : "Export"}
-                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </summary>
-                <div className="absolute right-0 z-30 mt-1 min-w-[12rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg">
-                  <button
-                    type="button"
-                    disabled={exportBusy}
-                    aria-busy={exportBusy}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
-                    onClick={(e) => {
-                      const d = e.currentTarget.closest("details");
-                      if (d) d.open = false;
-                      void handleBoardExport("csv");
-                    }}
-                  >
-                    {exportBusy && <Spinner size="sm" />}
-                    Download CSV
-                  </button>
-                  <button
-                    type="button"
-                    disabled={exportBusy}
-                    aria-busy={exportBusy}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
-                    onClick={(e) => {
-                      const d = e.currentTarget.closest("details");
-                      if (d) d.open = false;
-                      void handleBoardExport("xlsx");
-                    }}
-                  >
-                    {exportBusy && <Spinner size="sm" />}
-                    Download Excel (.xlsx)
-                  </button>
-                </div>
-              </details>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted"
-              >
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
-                  {chipLetter}
-                </span>
-                Viewing as: {me?.role ?? "Member"}
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
+                    {chipLetter}
+                  </span>
+                  Role: {ROLE_LABELS[rbacRole] ?? rbacRole}
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </button>
               </div>
               {exportErr && (
                 <p className="max-w-sm text-right text-xs text-destructive">{exportErr}</p>
@@ -226,7 +230,9 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <div
+            className={`grid gap-4 sm:grid-cols-2 xl:grid-cols-3 ${showMeetingsPanel && showAiMetric ? "2xl:grid-cols-6" : showMeetingsPanel || showAiMetric ? "2xl:grid-cols-5" : "2xl:grid-cols-4"}`}
+          >
             {!statsReady ? (
               Array.from({ length: 6 }).map((_, i) => <StatsCardSkeleton key={i} />)
             ) : (
@@ -248,8 +254,12 @@ export default function Dashboard() {
                   trend={trends.completion}
                 />
                 <StatsCard title="My Tasks" value={stats.my_tasks} iconKey="my" trend={trends.my} />
-                <StatsCard title="Meetings This Week" value={stats.meetings_this_week} iconKey="meetings" />
-                <StatsCard title="AI Tasks Generated" value={stats.ai_tasks_generated} iconKey="ai" trend={trends.ai} />
+                {showMeetingsPanel && (
+                  <StatsCard title="Meetings This Week" value={stats.meetings_this_week} iconKey="meetings" />
+                )}
+                {showAiMetric && (
+                  <StatsCard title="AI Tasks Generated" value={stats.ai_tasks_generated} iconKey="ai" trend={trends.ai} />
+                )}
               </>
             )}
           </div>
@@ -280,7 +290,7 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-12">
-            <div className="lg:col-span-8">
+            <div className={showMeetingsPanel ? "lg:col-span-8" : "lg:col-span-12"}>
               <OverdueTable
                 board={board}
                 overdue={overdue}
@@ -290,14 +300,16 @@ export default function Dashboard() {
                 onRetry={() => boardQ.refetch()}
               />
             </div>
-            <div className="lg:col-span-4">
-              <MeetingsPanel
-                meetings={meetings}
-                isLoading={!meetingsQ.isFetched}
-                isError={false}
-                onRetry={() => meetingsQ.refetch()}
-              />
-            </div>
+            {showMeetingsPanel && (
+              <div className="lg:col-span-4">
+                <MeetingsPanel
+                  meetings={meetings}
+                  isLoading={!meetingsQ.isFetched}
+                  isError={false}
+                  onRetry={() => meetingsQ.refetch()}
+                />
+              </div>
+            )}
           </div>
 
           <p className="text-center text-[11px] text-muted-foreground">

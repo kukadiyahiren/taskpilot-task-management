@@ -4,6 +4,7 @@ import enum
 from datetime import date, datetime
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     Date,
@@ -35,6 +36,16 @@ class MeetingStatus(str, enum.Enum):
     ended = "ended"
 
 
+class Department(Base):
+    __tablename__ = "departments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255))
+    code: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+
+    users: Mapped[list["User"]] = relationship("User", back_populates="department")
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -43,9 +54,26 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(255))
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    role: Mapped[str] = mapped_column(String(64), default="Member")
+    # RBAC slug: director | vp | gm | manager | staff (legacy labels normalized in app)
+    role: Mapped[str] = mapped_column(String(64), default="staff")
+    department_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id"), nullable=True, index=True)
+    manager_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    # Director-assigned permission keys beyond role inheritance (subset of rbac.config permissions)
+    extra_permissions: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    department: Mapped["Department | None"] = relationship("Department", back_populates="users")
+    manager: Mapped["User | None"] = relationship(
+        "User",
+        remote_side="User.id",
+        foreign_keys="User.manager_id",
+        back_populates="direct_reports",
+    )
+    direct_reports: Mapped[list["User"]] = relationship(
+        "User",
+        back_populates="manager",
+        foreign_keys="User.manager_id",
+    )
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="user")
     activities: Mapped[list["ActivityLog"]] = relationship("ActivityLog", back_populates="user")
 

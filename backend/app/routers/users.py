@@ -1,18 +1,44 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, get_effective_user
 from app.models import BoardList, Task, User, task_assignees
-from app.schemas import MyTaskSummary, UserRead
+from app.rbac.config import normalize_extra_permissions
+from app.rbac.deps import require_permission
+from app.rbac.scope import filter_user_query
+from app.schemas import MyTaskSummary, UserExtraPermissionsUpdate, UserRead
 from app.services.task_summary import summarize_tasks
+from app.services.user_read import public_user_read
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("", response_model=list[UserRead])
-def list_users(db: Session = Depends(get_db)):
-    return db.query(User).order_by(User.name).all()
+def list_users(
+    db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
+):
+    q = db.query(User).order_by(User.name)
+    q = filter_user_query(db, q, viewer)
+    return [public_user_read(u) for u in q.all()]
+
+
+@router.patch("/{user_id}/extra-permissions", response_model=UserRead)
+def patch_user_extra_permissions(
+    user_id: int,
+    body: UserExtraPermissionsUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("admin.users")),
+):
+    """Director (admin.users): grant or revoke extra permission keys beyond the user's role."""
+    target = db.get(User, user_id)
+    if not target:
+        raise HTTPException(404, "User not found")
+    target.extra_permissions = normalize_extra_permissions(body.extra_permissions)
+    db.commit()
+    db.refresh(target)
+    return public_user_read(target)
 
 
 @router.get("/me/tasks", response_model=list[MyTaskSummary])

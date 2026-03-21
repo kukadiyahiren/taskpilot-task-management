@@ -1,11 +1,14 @@
 from enum import Enum
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models import Board, BoardList, Label, Task
+from app.deps import get_effective_user
+from app.models import Board, BoardList, Label, Task, User
+from app.rbac.scope import task_visible_for_user
+from app.realtime.board_hub import schedule_board_refresh
 from app.schemas import (
     BoardListCreate,
     BoardListRead,
@@ -27,11 +30,12 @@ class ExportFormat(str, Enum):
     xlsx = "xlsx"
 
 
-def _board_read(db: Session, board: Board) -> BoardRead:
+def _board_read(db: Session, board: Board, viewer: User) -> BoardRead:
     lists_out: list[BoardListRead] = []
     for lst in sorted(board.lists, key=lambda x: x.position):
         tasks = sorted(lst.tasks, key=lambda t: t.position)
-        summaries = summarize_tasks(db, tasks)
+        visible = [t for t in tasks if task_visible_for_user(db, viewer, t)]
+        summaries = summarize_tasks(db, visible)
         lists_out.append(
             BoardListRead(
                 id=lst.id,
@@ -55,24 +59,30 @@ def _board_read(db: Session, board: Board) -> BoardRead:
     )
 
 
+def _load_board(db: Session, board_id: int) -> Board | None:
+    return (
+        db.query(Board)
+        .options(
+            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.assignees),
+            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.labels),
+            selectinload(Board.labels),
+        )
+        .filter(Board.id == board_id)
+        .first()
+    )
+
+
 @router.get("/{board_id}/export")
 def export_board_tasks(
     board_id: int,
     file_format: ExportFormat = Query(ExportFormat.csv, alias="file_format"),
     db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
 ):
-    board = (
-        db.query(Board)
-        .options(
-            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.assignees),
-            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.labels),
-        )
-        .filter(Board.id == board_id)
-        .first()
-    )
+    board = _load_board(db, board_id)
     if not board:
         raise HTTPException(404, "Board not found")
-    headers, rows = build_export_matrix(db, board)
+    headers, rows = build_export_matrix(db, board, viewer=viewer)
     ext = "csv" if file_format == ExportFormat.csv else "xlsx"
     filename = f"board-{board_id}-tasks.{ext}"
     if file_format == ExportFormat.csv:
@@ -89,24 +99,25 @@ def export_board_tasks(
 
 
 @router.get("/{board_id}", response_model=BoardRead)
-def get_board(board_id: int, db: Session = Depends(get_db)):
-    board = (
-        db.query(Board)
-        .options(
-            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.assignees),
-            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.labels),
-            selectinload(Board.labels),
-        )
-        .filter(Board.id == board_id)
-        .first()
-    )
+def get_board(
+    board_id: int,
+    db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
+):
+    board = _load_board(db, board_id)
     if not board:
         raise HTTPException(404, "Board not found")
-    return _board_read(db, board)
+    return _board_read(db, board, viewer)
 
 
 @router.patch("/{board_id}", response_model=BoardRead)
-def update_board(board_id: int, body: BoardUpdate, db: Session = Depends(get_db)):
+def update_board(
+    board_id: int,
+    body: BoardUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
+):
     board = db.get(Board, board_id)
     if not board:
         raise HTTPException(404, "Board not found")
@@ -117,21 +128,20 @@ def update_board(board_id: int, body: BoardUpdate, db: Session = Depends(get_db)
     if body.sprint_end is not None:
         board.sprint_end = body.sprint_end
     db.commit()
-    board = (
-        db.query(Board)
-        .options(
-            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.assignees),
-            selectinload(Board.lists).selectinload(BoardList.tasks).selectinload(Task.labels),
-            selectinload(Board.labels),
-        )
-        .filter(Board.id == board_id)
-        .first()
-    )
-    return _board_read(db, board)
+    schedule_board_refresh(background_tasks, board_id)
+    board = _load_board(db, board_id)
+    assert board is not None
+    return _board_read(db, board, viewer)
 
 
 @router.post("/{board_id}/lists", response_model=BoardRead)
-def add_list(board_id: int, body: BoardListCreate, db: Session = Depends(get_db)):
+def add_list(
+    board_id: int,
+    body: BoardListCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
+):
     board = db.get(Board, board_id)
     if not board:
         raise HTTPException(404, "Board not found")
@@ -139,11 +149,20 @@ def add_list(board_id: int, body: BoardListCreate, db: Session = Depends(get_db)
     lst = BoardList(board_id=board_id, name=body.name, position=max_pos, accent=body.accent)
     db.add(lst)
     db.commit()
-    return get_board(board_id, db)
+    schedule_board_refresh(background_tasks, board_id)
+    board = _load_board(db, board_id)
+    assert board is not None
+    return _board_read(db, board, viewer)
 
 
 @router.patch("/lists/{list_id}", response_model=BoardRead)
-def update_list(list_id: int, body: BoardListUpdate, db: Session = Depends(get_db)):
+def update_list(
+    list_id: int,
+    body: BoardListUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
+):
     lst = db.get(BoardList, list_id)
     if not lst:
         raise HTTPException(404, "List not found")
@@ -154,28 +173,44 @@ def update_list(list_id: int, body: BoardListUpdate, db: Session = Depends(get_d
     if body.accent is not None:
         lst.accent = body.accent
     db.commit()
-    return get_board(lst.board_id, db)
+    schedule_board_refresh(background_tasks, lst.board_id)
+    board = _load_board(db, lst.board_id)
+    assert board is not None
+    return _board_read(db, board, viewer)
 
 
 @router.post("/{board_id}/lists/reorder", response_model=BoardRead)
-def reorder_lists(board_id: int, body: ReorderListsBody, db: Session = Depends(get_db)):
+def reorder_lists(
+    board_id: int,
+    body: ReorderListsBody,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
+):
     lists = db.query(BoardList).filter(BoardList.board_id == board_id).all()
     by_id = {x.id: x for x in lists}
     for pos, lid in enumerate(body.list_ids_in_order):
         if lid in by_id:
             by_id[lid].position = pos
     db.commit()
-    return get_board(board_id, db)
+    schedule_board_refresh(background_tasks, board_id)
+    board = _load_board(db, board_id)
+    assert board is not None
+    return _board_read(db, board, viewer)
 
 
 @router.post("/{board_id}/labels", response_model=LabelRead)
-def create_label(board_id: int, body: LabelCreate, db: Session = Depends(get_db)):
+def create_label(
+    board_id: int,
+    body: LabelCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     if not db.get(Board, board_id):
         raise HTTPException(404, "Board not found")
     lab = Label(board_id=board_id, name=body.name, color=body.color)
     db.add(lab)
     db.commit()
     db.refresh(lab)
+    schedule_board_refresh(background_tasks, board_id)
     return lab
-
-
