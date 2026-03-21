@@ -8,8 +8,6 @@ import { MeetingsPanel } from "../components/dashboard/MeetingsPanel.jsx";
 import { OverdueTable } from "../components/dashboard/OverdueTable.jsx";
 import { StatsCard, StatsCardSkeleton } from "../components/dashboard/StatsCard.jsx";
 import { TaskAnalyticsChart } from "../components/dashboard/TaskAnalyticsChart.jsx";
-import { Button } from "../components/ui/button.jsx";
-import { Spinner } from "../components/ui/spinner.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import {
   useBoard,
@@ -73,13 +71,6 @@ export default function Dashboard() {
 
   const overdue = useOverdueFromBoard(board ?? null);
 
-  const anyFallback =
-    statsRes.isFallback ||
-    analyticsRes.isFallback ||
-    activityRes.isFallback ||
-    boardRes.isFallback ||
-    meetingsRes.isFallback;
-
   const trends = useMemo(() => {
     const pts = analytics;
     return {
@@ -94,18 +85,13 @@ export default function Dashboard() {
   const handleNewTask = () => navigate("/board");
 
   async function refetchAll() {
-    setRefetchBusy(true);
-    try {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: qk.stats(ws, boardId) }),
-        qc.invalidateQueries({ queryKey: qk.analytics(boardId, 21) }),
-        qc.invalidateQueries({ queryKey: qk.activity(boardId, 12) }),
-        qc.invalidateQueries({ queryKey: qk.board(boardId) }),
-        qc.invalidateQueries({ queryKey: qk.meetings(ws) }),
-      ]);
-    } finally {
-      setRefetchBusy(false);
-    }
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: qk.stats(ws, boardId) }),
+      qc.invalidateQueries({ queryKey: qk.analytics(boardId, 21) }),
+      qc.invalidateQueries({ queryKey: qk.activity(boardId, 12) }),
+      qc.invalidateQueries({ queryKey: qk.board(boardId) }),
+      qc.invalidateQueries({ queryKey: qk.meetings(ws) }),
+    ]);
   }
 
   const sprintName = board?.name ?? "Q1 2026 Sprint";
@@ -118,7 +104,6 @@ export default function Dashboard() {
 
   const [exportBusy, setExportBusy] = useState(false);
   const [exportErr, setExportErr] = useState("");
-  const [refetchBusy, setRefetchBusy] = useState(false);
 
   async function handleBoardExport(fmt) {
     setExportErr("");
@@ -211,24 +196,6 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-
-          {anyFallback && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100">
-              <p>
-                <span className="font-semibold">Demo mode.</span> Some data couldn&apos;t be loaded from the API —
-                showing static placeholders until the backend is reachable.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                loading={refetchBusy}
-                className="shrink-0 border-amber-500/40 bg-card"
-                onClick={() => void refetchAll()}
-              >
-                Retry connection
-              </Button>
-            </div>
-          )}
 
           <div
             className={`grid gap-4 sm:grid-cols-2 xl:grid-cols-3 ${showMeetingsPanel && showAiMetric ? "2xl:grid-cols-6" : showMeetingsPanel || showAiMetric ? "2xl:grid-cols-5" : "2xl:grid-cols-4"}`}
