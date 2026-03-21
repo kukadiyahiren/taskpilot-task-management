@@ -12,12 +12,15 @@ import {
   Users,
   Video,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useBoard, useDashboardStats, useWorkspaceMeetings } from "../hooks/useDashboardData.js";
+import { authMeQueryKey, useCurrentUser } from "../hooks/useCurrentUser.js";
 import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
 import { FALLBACK_BOARD, FALLBACK_MEETINGS, FALLBACK_STATS } from "../lib/dashboardFallbacks.js";
 import { clearAccessToken } from "../lib/authStorage.js";
 import { resolveQueryData } from "../lib/resolveQueryData.js";
+import { initialsFromName } from "../lib/userDisplay.js";
 import { cn } from "../lib/utils.js";
 
 function countBoardTasks(board) {
@@ -80,8 +83,15 @@ function PlaceholderItem({ icon: Icon, label, badge, tag, collapsed }) {
 
 export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const meQ = useCurrentUser();
+  const user = meQ.data;
+  const initials = user ? initialsFromName(user.name) : meQ.isPending ? "…" : "?";
+  const displayName = user?.name ?? (meQ.isPending ? "Loading…" : "Account");
+  const roleLabel = user?.role ?? "Member";
 
   function signOut() {
+    queryClient.removeQueries({ queryKey: authMeQueryKey });
     clearAccessToken();
     navigate("/login", { replace: true });
   }
@@ -163,13 +173,24 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
 
       <div className="mt-auto border-t border-slate-200/80 p-3">
         <div className="flex items-center gap-3 rounded-xl bg-slate-50/80 px-3 py-2.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-[#7C3AED] text-sm font-bold text-white">
-            JK
-          </div>
+          {user?.avatar_url ? (
+            <img
+              src={user.avatar_url}
+              alt=""
+              className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white"
+            />
+          ) : (
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-[#7C3AED] text-sm font-bold text-white"
+              title={displayName}
+            >
+              {initials}
+            </div>
+          )}
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-900">Jamie Kim</p>
-              <p className="text-xs text-slate-500">Manager</p>
+              <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+              <p className="truncate text-xs text-slate-500">{roleLabel}</p>
             </div>
           )}
           <button type="button" className="text-slate-400 hover:text-slate-700" aria-label="Settings">

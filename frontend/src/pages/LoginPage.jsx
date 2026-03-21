@@ -1,9 +1,11 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Github, Lock, Mail, Users } from "lucide-react";
 import LoginHero from "../components/LoginHero.jsx";
 import { DEMO_LOGIN_EMAIL, DEMO_LOGIN_PASSWORD } from "../constants.js";
 import * as authApi from "../api/auth.js";
+import { authMeQueryKey } from "../hooks/useCurrentUser.js";
 import { getAccessToken, setAccessToken } from "../lib/authStorage.js";
 
 function parseApiError(text) {
@@ -43,6 +45,7 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -68,9 +71,11 @@ export default function LoginPage() {
           password,
         });
         setAccessToken(data.access_token, remember);
+        if (data.user) queryClient.setQueryData(authMeQueryKey, data.user);
       } else {
         const data = await authApi.login({ email: email.trim(), password });
         setAccessToken(data.access_token, remember);
+        if (data.user) queryClient.setQueryData(authMeQueryKey, data.user);
       }
       navigate("/", { replace: true });
     } catch (err) {

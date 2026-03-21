@@ -18,6 +18,7 @@ import {
   useWorkspaceMeetings,
   qk,
 } from "../hooks/useDashboardData.js";
+import { useCurrentUser } from "../hooks/useCurrentUser.js";
 import { useOverdueFromBoard } from "../hooks/useOverdueFromBoard.js";
 import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
 import {
@@ -29,10 +30,19 @@ import {
 } from "../lib/dashboardFallbacks.js";
 import { resolveQueryData } from "../lib/resolveQueryData.js";
 import { seriesTrend } from "../lib/trends.js";
+import { firstNameFromName, initialsFromName } from "../lib/userDisplay.js";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const meQ = useCurrentUser();
+  const me = meQ.data;
+  const greetName = firstNameFromName(me?.name);
+  const chipLetter = me
+    ? initialsFromName(me.name).slice(0, 1)
+    : meQ.isPending
+      ? "…"
+      : "?";
   const ws = WORKSPACE_ID;
   const boardId = DEFAULT_BOARD_ID;
 
@@ -93,7 +103,9 @@ export default function Dashboard() {
         <div className="mx-auto max-w-[1600px] space-y-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Good morning, Jamie</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                Good morning, {meQ.isPending ? "…" : greetName}
+              </h1>
               <p className="mt-1 text-slate-500">
                 Your team&apos;s task overview — {sprintName} · Last updated just now
               </p>
@@ -115,9 +127,9 @@ export default function Dashboard() {
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
               >
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-xs font-bold text-[#7C3AED]">
-                  M
+                  {chipLetter}
                 </span>
-                Viewing as: Manager
+                Viewing as: {me?.role ?? "Member"}
                 <ChevronDown className="h-4 w-4 text-slate-400" />
               </button>
             </div>
