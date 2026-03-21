@@ -9,6 +9,7 @@ import { OverdueTable } from "../components/dashboard/OverdueTable.jsx";
 import { StatsCard, StatsCardSkeleton } from "../components/dashboard/StatsCard.jsx";
 import { TaskAnalyticsChart } from "../components/dashboard/TaskAnalyticsChart.jsx";
 import { Button } from "../components/ui/button.jsx";
+import { Spinner } from "../components/ui/spinner.jsx";
 import { Badge } from "../components/ui/badge.jsx";
 import {
   useBoard,
@@ -91,19 +92,27 @@ export default function Dashboard() {
 
   const handleNewTask = () => navigate("/board");
 
-  const refetchAll = () => {
-    qc.invalidateQueries({ queryKey: qk.stats(ws, boardId) });
-    qc.invalidateQueries({ queryKey: qk.analytics(boardId, 21) });
-    qc.invalidateQueries({ queryKey: qk.activity(boardId, 12) });
-    qc.invalidateQueries({ queryKey: qk.board(boardId) });
-    qc.invalidateQueries({ queryKey: qk.meetings(ws) });
-  };
+  async function refetchAll() {
+    setRefetchBusy(true);
+    try {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: qk.stats(ws, boardId) }),
+        qc.invalidateQueries({ queryKey: qk.analytics(boardId, 21) }),
+        qc.invalidateQueries({ queryKey: qk.activity(boardId, 12) }),
+        qc.invalidateQueries({ queryKey: qk.board(boardId) }),
+        qc.invalidateQueries({ queryKey: qk.meetings(ws) }),
+      ]);
+    } finally {
+      setRefetchBusy(false);
+    }
+  }
 
   const sprintName = board?.name ?? "Q1 2026 Sprint";
   const statsReady = stats != null;
 
   const [exportBusy, setExportBusy] = useState(false);
   const [exportErr, setExportErr] = useState("");
+  const [refetchBusy, setRefetchBusy] = useState(false);
 
   async function handleBoardExport(fmt) {
     setExportErr("");
@@ -146,33 +155,38 @@ export default function Dashboard() {
               </Link>
               <details className="relative">
                 <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm hover:bg-muted [&::-webkit-details-marker]:hidden">
-                  <Download className="h-4 w-4 text-muted-foreground" />
+                  <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  {exportBusy && <Spinner size="sm" />}
                   {exportBusy ? "Exporting…" : "Export"}
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </summary>
                 <div className="absolute right-0 z-30 mt-1 min-w-[12rem] overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg">
                   <button
                     type="button"
                     disabled={exportBusy}
-                    className="block w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
+                    aria-busy={exportBusy}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
                     onClick={(e) => {
                       const d = e.currentTarget.closest("details");
                       if (d) d.open = false;
                       void handleBoardExport("csv");
                     }}
                   >
+                    {exportBusy && <Spinner size="sm" />}
                     Download CSV
                   </button>
                   <button
                     type="button"
                     disabled={exportBusy}
-                    className="block w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
+                    aria-busy={exportBusy}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium hover:bg-muted disabled:opacity-50"
                     onClick={(e) => {
                       const d = e.currentTarget.closest("details");
                       if (d) d.open = false;
                       void handleBoardExport("xlsx");
                     }}
                   >
+                    {exportBusy && <Spinner size="sm" />}
                     Download Excel (.xlsx)
                   </button>
                 </div>
@@ -200,7 +214,13 @@ export default function Dashboard() {
                 <span className="font-semibold">Demo mode.</span> Some data couldn&apos;t be loaded from the API —
                 showing static placeholders until the backend is reachable.
               </p>
-              <Button variant="outline" size="sm" className="shrink-0 border-amber-500/40 bg-card" onClick={refetchAll}>
+              <Button
+                variant="outline"
+                size="sm"
+                loading={refetchBusy}
+                className="shrink-0 border-amber-500/40 bg-card"
+                onClick={() => void refetchAll()}
+              >
                 Retry connection
               </Button>
             </div>

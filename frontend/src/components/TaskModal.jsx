@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { api } from "../api/client.js";
 import { priorityDot, priorityLabel } from "../lib/priority.js";
 import { useBoardStore } from "../store/boardStore.js";
+import { Spinner } from "./ui/spinner.jsx";
 
 const EXIT_MS = 220;
 
@@ -35,6 +36,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   const [teamUsers, setTeamUsers] = useState([]);
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [exiting, setExiting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const exitTimerRef = useRef(null);
   const exitStartedRef = useRef(false);
 
@@ -150,9 +152,16 @@ export default function TaskModal({ taskId, boardId, onClose }) {
 
   const removeTask = async () => {
     if (!confirm("Delete this task?")) return;
-    await api.delete(`/tasks/${taskId}`);
-    await loadBoard(boardId);
-    requestClose();
+    setDeleting(true);
+    try {
+      await api.delete(`/tasks/${taskId}`);
+      await loadBoard(boardId);
+      requestClose();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (!task) {
@@ -162,8 +171,9 @@ export default function TaskModal({ taskId, boardId, onClose }) {
           exiting ? "opacity-0" : "opacity-100"
         }`}
       >
-        <div className="rounded-2xl border border-border bg-card px-8 py-6 text-foreground shadow-modal dark:shadow-modal-dark">
-          Loading…
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-8 py-6 text-foreground shadow-modal dark:shadow-modal-dark">
+          <Spinner size="lg" className="text-primary" />
+          <span>Loading task…</span>
         </div>
       </div>,
       document.body
@@ -256,9 +266,11 @@ export default function TaskModal({ taskId, boardId, onClose }) {
               <button
                 type="button"
                 disabled={saving}
+                aria-busy={saving}
                 onClick={() => saveMeta({ closeAfter: true })}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
               >
+                {saving && <Spinner size="sm" className="text-white" />}
                 Save
               </button>
               <button
@@ -354,8 +366,10 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
+                    aria-busy={saving}
+                    className="inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
                   >
+                    {saving && <Spinner size="sm" className="text-background" />}
                     Post
                   </button>
                 </form>
@@ -409,10 +423,13 @@ export default function TaskModal({ taskId, boardId, onClose }) {
 
           <button
             type="button"
-            onClick={removeTask}
-            className="mt-10 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-sm font-medium text-red-700 hover:bg-red-500/15 dark:text-red-300"
+            disabled={deleting}
+            aria-busy={deleting}
+            onClick={() => void removeTask()}
+            className="mt-10 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-sm font-medium text-red-700 hover:bg-red-500/15 disabled:opacity-50 dark:text-red-300"
           >
-            Delete task
+            {deleting && <Spinner size="sm" className="text-red-700 dark:text-red-300" />}
+            {deleting ? "Deleting…" : "Delete task"}
           </button>
         </aside>
       </div>

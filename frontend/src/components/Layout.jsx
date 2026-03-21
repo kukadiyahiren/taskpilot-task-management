@@ -2,7 +2,7 @@ import { useState } from "react";
 import Sidebar from "./Sidebar.jsx";
 import TopNav from "./TopNav.jsx";
 
-export default function Layout({ children, onNewTask }) {
+export default function Layout({ children, onNewTask, newTaskLoading = false }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -15,7 +15,11 @@ export default function Layout({ children, onNewTask }) {
         onCloseMobile={() => setMobileOpen(false)}
       />
       <div className="flex min-w-0 flex-1 flex-col lg:pl-0">
-        <TopNav onNewTask={onNewTask} onOpenMobileMenu={() => setMobileOpen(true)} />
+        <TopNav
+          onNewTask={onNewTask}
+          onOpenMobileMenu={() => setMobileOpen(true)}
+          newTaskLoading={newTaskLoading}
+        />
         <main className="min-h-0 flex-1 overflow-auto">{children}</main>
       </div>
     </div>

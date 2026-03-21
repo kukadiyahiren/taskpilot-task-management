@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Send, Sparkles } from "lucide-react";
 import Layout from "../components/Layout.jsx";
+import { Spinner } from "../components/ui/spinner.jsx";
 import { api } from "../api/client.js";
 import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
 import { buildAssistantReply } from "../lib/aiAssistantReplies.js";
@@ -27,9 +28,11 @@ export default function AiAssistantPage() {
   ]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const bottomRef = useRef(null);
 
   const refreshContext = useCallback(async () => {
+    setRefreshing(true);
     setLoadError("");
     try {
       const [b, s] = await Promise.all([
@@ -40,6 +43,8 @@ export default function AiAssistantPage() {
       setStats(s);
     } catch (e) {
       setLoadError(e.message || "Could not load context");
+    } finally {
+      setRefreshing(false);
     }
   }, []);
 
@@ -96,10 +101,13 @@ export default function AiAssistantPage() {
             </div>
             <button
               type="button"
-              onClick={refreshContext}
-              className="ml-auto rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+              disabled={refreshing}
+              aria-busy={refreshing}
+              onClick={() => void refreshContext()}
+              className="ml-auto inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
             >
-              Refresh data
+              {refreshing && <Spinner size="sm" />}
+              {refreshing ? "Refreshing…" : "Refresh data"}
             </button>
           </div>
         </div>
@@ -143,7 +151,8 @@ export default function AiAssistantPage() {
             ))}
             {thinking && (
               <div className="flex justify-start">
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-muted-foreground">
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-muted-foreground">
+                  <Spinner size="sm" />
                   Thinking…
                 </div>
               </div>
@@ -161,10 +170,11 @@ export default function AiAssistantPage() {
             <button
               type="submit"
               disabled={thinking || !input.trim()}
+              aria-busy={thinking}
               className="flex shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
             >
-              <Send className="h-4 w-4" />
-              Send
+              {thinking ? <Spinner size="sm" className="text-white" /> : <Send className="h-4 w-4" />}
+              {thinking ? "Sending…" : "Send"}
             </button>
           </form>
         </div>

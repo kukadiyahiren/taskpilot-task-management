@@ -3,6 +3,7 @@ import { DragDropContext } from "@hello-pangea/dnd";
 import Layout from "../components/Layout.jsx";
 import KanbanColumn from "../components/KanbanColumn.jsx";
 import TaskModal from "../components/TaskModal.jsx";
+import { Spinner } from "../components/ui/spinner.jsx";
 import { api } from "../api/client.js";
 import { DEFAULT_BOARD_ID } from "../constants.js";
 import { downloadBoardExport } from "../lib/downloadBoardExport.js";
@@ -49,6 +50,7 @@ export default function BoardPage() {
 
   const [exportBusy, setExportBusy] = useState(false);
   const [exportErr, setExportErr] = useState("");
+  const [newTaskBusy, setNewTaskBusy] = useState(false);
 
   useEffect(() => {
     loadBoard(boardId);
@@ -106,6 +108,7 @@ export default function BoardPage() {
   const handleNewTask = async () => {
     if (!board?.lists?.length) return;
     const listId = board.lists[0].id;
+    setNewTaskBusy(true);
     try {
       const created = await api.post("/tasks", {
         title: "New task",
@@ -116,6 +119,8 @@ export default function BoardPage() {
       openTask(created.id);
     } catch (e) {
       console.error(e);
+    } finally {
+      setNewTaskBusy(false);
     }
   };
 
@@ -183,7 +188,7 @@ export default function BoardPage() {
   }, [board?.lists, memberFilter]);
 
   return (
-    <Layout onNewTask={handleNewTask}>
+    <Layout onNewTask={handleNewTask} newTaskLoading={newTaskBusy}>
       <div className="flex h-full min-h-0 flex-col bg-gradient-to-b from-slate-50 to-slate-100/80">
         <div className="border-b border-border bg-card/60 px-6 py-4 backdrop-blur">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -198,22 +203,30 @@ export default function BoardPage() {
             </div>
             <div className="flex flex-col items-end gap-1 sm:items-end">
               <div className="flex flex-wrap items-center gap-2">
-              {saving && <span className="text-xs text-muted-foreground/70">Saving…</span>}
-              {exportBusy && <span className="text-xs text-muted-foreground/70">Exporting…</span>}
+              {saving && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70">
+                  <Spinner size="sm" />
+                  Saving…
+                </span>
+              )}
               <button
                 type="button"
                 disabled={exportBusy}
+                aria-busy={exportBusy}
                 onClick={() => void handleExport("csv")}
-                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-muted disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-muted disabled:opacity-50"
               >
+                {exportBusy && <Spinner size="sm" />}
                 Export CSV
               </button>
               <button
                 type="button"
                 disabled={exportBusy}
+                aria-busy={exportBusy}
                 onClick={() => void handleExport("xlsx")}
-                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-muted disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-muted disabled:opacity-50"
               >
+                {exportBusy && <Spinner size="sm" />}
                 Excel
               </button>
               <button
@@ -280,8 +293,10 @@ export default function BoardPage() {
               <button
                 type="submit"
                 disabled={inviteBusy}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                aria-busy={inviteBusy}
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
               >
+                {inviteBusy && <Spinner size="sm" className="text-white" />}
                 {inviteBusy ? "Adding…" : "Create account"}
               </button>
               {inviteMsg && (
@@ -375,18 +390,21 @@ export default function BoardPage() {
                         <button
                           type="submit"
                           disabled={addListBusy}
-                          className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                          aria-busy={addListBusy}
+                          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                         >
+                          {addListBusy && <Spinner size="sm" className="text-white" />}
                           {addListBusy ? "Adding…" : "Add list"}
                         </button>
                         <button
                           type="button"
+                          disabled={addListBusy}
                           onClick={() => {
                             setAddListOpen(false);
                             setNewListName("");
                             setAddListError("");
                           }}
-                          className="rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+                          className="rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
                         >
                           Cancel
                         </button>

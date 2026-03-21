@@ -5,7 +5,7 @@ import { Button } from "./ui/button.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
 import { cn } from "../lib/utils.js";
 
-export default function TopNav({ onNewTask, onOpenMobileMenu }) {
+export default function TopNav({ onNewTask, onOpenMobileMenu, newTaskLoading = false }) {
   const { pathname } = useLocation();
   const { unreadCount } = useWorkspaceNotifications();
   const notifLabel = unreadCount > 99 ? "99+" : unreadCount > 0 ? String(unreadCount) : null;
@@ -34,8 +34,14 @@ export default function TopNav({ onNewTask, onOpenMobileMenu }) {
         </kbd>
       </div>
 
-      <Button variant="gradient" size="md" className="hidden shrink-0 gap-1.5 sm:inline-flex" onClick={onNewTask}>
-        <Plus className="h-4 w-4" />
+      <Button
+        variant="gradient"
+        size="md"
+        loading={newTaskLoading}
+        className="hidden shrink-0 gap-1.5 sm:inline-flex"
+        onClick={onNewTask}
+      >
+        {!newTaskLoading && <Plus className="h-4 w-4" />}
         New Task
       </Button>
 
