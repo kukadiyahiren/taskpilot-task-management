@@ -56,6 +56,13 @@ def seed_if_empty(db: Session) -> None:
             avatar_url=None,
             password_hash=demo_hash,
         ),
+        User(
+            email="test@user.com",
+            name="Test User",
+            role="Manager",
+            avatar_url=None,
+            password_hash=demo_hash,
+        ),
     ]
     for u in users:
         db.add(u)

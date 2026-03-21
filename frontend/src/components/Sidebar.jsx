@@ -164,7 +164,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
         <div>
           <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Tools</p>
           <div className="space-y-0.5">
-            <PlaceholderItem icon={Sparkles} label="AI Assistant" tag="NEW" collapsed={collapsed} />
+            <NavItem to="/ai" icon={Sparkles} label="AI Assistant" tag="NEW" collapsed={collapsed} />
             <PlaceholderItem icon={Search} label="Search" collapsed={collapsed} />
             <PlaceholderItem icon={Bell} label="Notifications" badge={3} collapsed={collapsed} />
           </div>
