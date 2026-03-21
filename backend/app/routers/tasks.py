@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models import ActivityLog, Board, BoardList, Checklist, ChecklistItem, Comment, Label, Priority, Task, User
+from app.models import ActivityLog, BoardList, Checklist, ChecklistItem, Comment, Label, Priority, Task, User
 from app.schemas import (
     ChecklistCreate,
     ChecklistItemCreate,
@@ -81,23 +81,6 @@ def _to_task_read(db: Session, task: Task) -> TaskRead:
         checklists=checklists,
         comments=comments,
     )
-
-
-@router.get("", response_model=list[TaskSummary])
-def list_tasks(board_id: int = Query(..., description="Board whose tasks to return"), db: Session = Depends(get_db)):
-    if not db.get(Board, board_id):
-        raise HTTPException(404, "Board not found")
-    list_ids = [x.id for x in db.query(BoardList).filter(BoardList.board_id == board_id).all()]
-    if not list_ids:
-        return []
-    tasks = (
-        db.query(Task)
-        .filter(Task.list_id.in_(list_ids))
-        .options(selectinload(Task.assignees), selectinload(Task.labels))
-        .order_by(Task.list_id, Task.position)
-        .all()
-    )
-    return summarize_tasks(db, tasks)
 
 
 @router.get("/{task_id}", response_model=TaskRead)

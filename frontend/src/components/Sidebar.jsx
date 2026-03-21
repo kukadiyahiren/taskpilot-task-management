@@ -1,109 +1,199 @@
+import {
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  LayoutDashboard,
+  LayoutGrid,
+  ListTodo,
+  Search,
+  Settings,
+  Sparkles,
+  Users,
+  Video,
+} from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useBoard, useDashboardStats, useWorkspaceMeetings } from "../hooks/useDashboardData.js";
+import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
+import { FALLBACK_BOARD, FALLBACK_MEETINGS, FALLBACK_STATS } from "../lib/dashboardFallbacks.js";
+import { resolveQueryData } from "../lib/resolveQueryData.js";
+import { cn } from "../lib/utils.js";
 
-const nav = [
-  { to: "/", label: "Dashboard", icon: "◆" },
-  { to: "/board", label: "Task Board", icon: "▦", badge: 12 },
-  { to: "/my-tasks", label: "My Tasks", icon: "✓", badge: 6 },
-];
+function countBoardTasks(board) {
+  if (!board?.lists) return 0;
+  return board.lists.reduce((n, c) => n + c.tasks.length, 0);
+}
 
-const team = [
-  { to: "#", label: "Members", icon: "◎" },
-  { to: "#", label: "Meetings", icon: "◷", badge: 2 },
-  { to: "#", label: "Files", icon: "📁" },
-];
-
-const tools = [
-  { to: "#", label: "AI Assistant", icon: "✦", tag: "NEW" },
-  { to: "#", label: "Search", icon: "⌕" },
-  { to: "#", label: "Notifications", icon: "🔔", badge: 3 },
-];
-
-function Item({ to, label, icon, badge, tag }) {
-  if (to === "#") {
-    return (
-      <span className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-400 cursor-not-allowed">
-        <span className="w-5 text-center opacity-70">{icon}</span>
-        <span className="flex-1">{label}</span>
-        {tag && (
-          <span className="rounded bg-brand-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-brand-600">{tag}</span>
-        )}
-        {badge != null && (
-          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-300">{badge}</span>
-        )}
-      </span>
-    );
-  }
+function NavItem({ to, end, icon: Icon, label, badge, tag, collapsed }) {
   return (
     <NavLink
       to={to}
-      end={to === "/"}
+      end={end}
+      title={label}
       className={({ isActive }) =>
-        `flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
-          isActive ? "bg-brand-600 text-white shadow-md shadow-brand-900/20" : "text-slate-300 hover:bg-slate-800/80"
-        }`
+        cn(
+          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+          collapsed && "justify-center px-2",
+          isActive
+            ? "bg-violet-100 text-[#7C3AED] shadow-sm"
+            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+        )
       }
     >
-      <span className="w-5 text-center opacity-90">{icon}</span>
-      <span className="flex-1 font-medium">{label}</span>
-      {badge != null && (
-        <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs tabular-nums">{badge}</span>
+      <Icon className="h-[18px] w-[18px] shrink-0 opacity-90" strokeWidth={1.75} />
+      {!collapsed && <span className="flex-1">{label}</span>}
+      {!collapsed && tag && (
+        <span className="rounded bg-[#7C3AED] px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
+          {tag}
+        </span>
+      )}
+      {!collapsed && badge != null && (
+        <span className="rounded-full bg-slate-200/90 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-700">
+          {badge}
+        </span>
       )}
     </NavLink>
   );
 }
 
-export default function Sidebar() {
+function PlaceholderItem({ icon: Icon, label, badge, tag, collapsed }) {
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-slate-800/80 bg-slate-900 text-slate-200">
-      <div className="flex items-center gap-2 border-b border-slate-800 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-lg text-white shadow-lg shadow-brand-900/40">
-          ✈
-        </div>
-        <div>
-          <h1 className="font-display text-lg font-semibold tracking-tight text-white">Task Pilot</h1>
-          <p className="text-xs text-slate-500">Workspace</p>
-        </div>
-      </div>
+    <span
+      title={label}
+      className={cn(
+        "flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400",
+        collapsed && "justify-center px-2"
+      )}
+    >
+      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+      {!collapsed && <span className="flex-1">{label}</span>}
+      {!collapsed && tag && (
+        <span className="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-[#7C3AED]">{tag}</span>
+      )}
+      {!collapsed && badge != null && (
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] tabular-nums">{badge}</span>
+      )}
+    </span>
+  );
+}
 
-      <div className="px-3 py-4">
+export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }) {
+  const boardQ = useBoard(DEFAULT_BOARD_ID);
+  const statsQ = useDashboardStats(WORKSPACE_ID, DEFAULT_BOARD_ID);
+  const meetingsQ = useWorkspaceMeetings(WORKSPACE_ID);
+
+  const boardRes = resolveQueryData(boardQ, FALLBACK_BOARD);
+  const statsRes = resolveQueryData(statsQ, FALLBACK_STATS);
+  const meetingsRes = resolveQueryData(meetingsQ, FALLBACK_MEETINGS);
+
+  const taskBoardBadge = boardRes.data != null ? countBoardTasks(boardRes.data) : "—";
+  const myBadge = statsRes.data?.my_tasks ?? "—";
+  const meetingsBadge = meetingsRes.data != null ? meetingsRes.data.length : "—";
+
+  const shell = (
+    <>
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200/80 px-4 py-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#7C3AED] text-white shadow-md shadow-violet-500/30">
+            <LayoutGrid className="h-5 w-5" strokeWidth={2} />
+          </div>
+          {!collapsed && (
+            <span className="truncate font-display text-lg font-bold tracking-tight text-slate-900">TaskFlow</span>
+          )}
+        </div>
         <button
           type="button"
-          className="flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800"
+          onClick={onToggleCollapse}
+          className="hidden rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 lg:inline-flex"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <span>Acme Corp.</span>
-          <span className="text-slate-500">▾</span>
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
+      </div>
+
+      <div className="px-3 py-3">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50"
+        >
+          <span className="flex items-center gap-2 truncate">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-sm font-bold text-[#7C3AED]">
+              A
+            </span>
+            {!collapsed && <span className="truncate">Acme Corp</span>}
+          </span>
+          {!collapsed && <ChevronRight className="h-4 w-4 shrink-0 rotate-90 text-slate-400" />}
         </button>
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
         <div>
-          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Workspace</p>
-          <div className="space-y-0.5">{nav.map((x) => <Item key={x.to + x.label} {...x} />)}</div>
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Workspace</p>
+          <div className="space-y-0.5">
+            <NavItem to="/" end icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
+            <NavItem to="/board" icon={LayoutGrid} label="Task Board" badge={taskBoardBadge} collapsed={collapsed} />
+            <NavItem to="/my-tasks" icon={ListTodo} label="My Tasks" badge={myBadge} collapsed={collapsed} />
+          </div>
         </div>
         <div>
-          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Team</p>
-          <div className="space-y-0.5">{team.map((x) => <Item key={x.label} {...x} />)}</div>
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Team</p>
+          <div className="space-y-0.5">
+            <PlaceholderItem icon={Users} label="Members" collapsed={collapsed} />
+            <PlaceholderItem icon={Video} label="Meetings" badge={meetingsBadge} collapsed={collapsed} />
+            <PlaceholderItem icon={FileText} label="Files" collapsed={collapsed} />
+          </div>
         </div>
         <div>
-          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Tools</p>
-          <div className="space-y-0.5">{tools.map((x) => <Item key={x.label} {...x} />)}</div>
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Tools</p>
+          <div className="space-y-0.5">
+            <PlaceholderItem icon={Sparkles} label="AI Assistant" tag="NEW" collapsed={collapsed} />
+            <PlaceholderItem icon={Search} label="Search" collapsed={collapsed} />
+            <PlaceholderItem icon={Bell} label="Notifications" badge={3} collapsed={collapsed} />
+          </div>
         </div>
       </nav>
 
-      <div className="mt-auto border-t border-slate-800 p-4">
-        <div className="flex items-center gap-3 rounded-xl bg-slate-800/60 px-3 py-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-brand-600 text-sm font-semibold text-white">
+      <div className="mt-auto border-t border-slate-200/80 p-3">
+        <div className="flex items-center gap-3 rounded-xl bg-slate-50/80 px-3 py-2.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-[#7C3AED] text-sm font-bold text-white">
             JK
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">Jamie Kim</p>
-            <p className="text-xs text-slate-500">Manager</p>
-          </div>
-          <button type="button" className="text-slate-500 hover:text-slate-300" aria-label="Settings">
-            ⚙
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-900">Jamie Kim</p>
+              <p className="text-xs text-slate-500">Manager</p>
+            </div>
+          )}
+          <button type="button" className="text-slate-400 hover:text-slate-700" aria-label="Settings">
+            <Settings className="h-4 w-4" />
           </button>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      <button
+        type="button"
+        aria-label="Close menu"
+        className={cn(
+          "fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm transition-opacity lg:hidden",
+          mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={onCloseMobile}
+      />
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex shrink-0 flex-col border-r border-slate-200/90 bg-[#F9FAFB] transition-[transform,width] duration-200 ease-out lg:static lg:z-auto lg:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          collapsed ? "w-[72px] lg:w-[72px]" : "w-[260px]"
+        )}
+      >
+        {shell}
+      </aside>
+    </>
   );
 }

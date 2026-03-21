@@ -121,13 +121,28 @@ API_PROXY_TARGET=http://127.0.0.1:8000
 
 Then restart `npm run dev` (Vite reads env only at startup).
 
-For production or no proxy, set `VITE_API_BASE` to the full API origin (see `src/api/client.js`).
+For production or no proxy, set `VITE_API_BASE` to the full API origin (see `src/api/http.js` for axios; `src/api/client.js` remains for fetch-based Kanban flows).
+
+### Dashboard data (live API)
+
+The dashboard uses **TanStack React Query** and **axios** (`src/api/http.js`) with query keys in `src/hooks/useDashboardData.js`. It calls the same FastAPI routes the backend exposes:
+
+| UI area | HTTP |
+|--------|------|
+| Stats cards | `GET /dashboard/stats?workspace_id=&board_id=` |
+| Chart | `GET /analytics/tasks?board_id=&days=21` |
+| Recent activity | `GET /activity/recent?board_id=&limit=` |
+| Overdue table | `GET /boards/{board_id}` (overdue rows computed in the browser) |
+| Meetings | `GET /workspaces/{workspace_id}/meetings` |
+
+There is no separate overdue list endpoint; the table uses board payload + due dates.
 
 ### Routes
 
-- `/` — Dashboard (stats, chart, activity, overdue table, meetings)
+- `/` — Dashboard (stats, Recharts analytics, activity, overdue table, meetings)
 - `/board` — Kanban board + task modal (edit, comments, checklist, delete)
 - `/my-tasks` — Placeholder until auth + “my tasks” filter API
+- `/login` — TaskFlow sign-in UI
 
 ## Migrations workflow
 
