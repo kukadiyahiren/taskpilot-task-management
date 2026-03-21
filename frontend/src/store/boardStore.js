@@ -29,6 +29,26 @@ export const useBoardStore = create((set, get) => ({
     set({ board: { ...board, lists } });
   },
 
+  /** Reorder board columns (first list stays first). Indices are 0-based in current `board.lists` order. */
+  reorderListsLocal: (sourceIndex, destinationIndex) => {
+    const { board } = get();
+    if (!board?.lists?.length) return;
+    let dest = destinationIndex;
+    if (dest === 0 && sourceIndex !== 0) dest = 1;
+    if (sourceIndex === dest) return;
+    const firstId = board.lists[0].id;
+    const lists = [...board.lists];
+    const [removed] = lists.splice(sourceIndex, 1);
+    lists.splice(dest, 0, removed);
+    if (lists[0]?.id !== firstId) return;
+    set({
+      board: {
+        ...board,
+        lists: lists.map((l, i) => ({ ...l, position: i })),
+      },
+    });
+  },
+
   moveTaskLocal: (taskId, destListId, destIndex) => {
     const { board } = get();
     if (!board) return;

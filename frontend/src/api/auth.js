@@ -13,3 +13,13 @@ export function register(body) {
 export function me() {
   return request("/auth/me");
 }
+
+/** @param {{ email: string }} body */
+export function forgotPassword(body) {
+  return request("/auth/forgot-password", { method: "POST", body });
+}
+
+/** @param {{ token: string, new_password: string }} body */
+export function resetPassword(body) {
+  return request("/auth/reset-password", { method: "POST", body });
+}

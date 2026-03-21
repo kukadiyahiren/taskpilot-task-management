@@ -24,6 +24,9 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # When True, POST /auth/forgot-password includes reset_token in JSON (no email server needed for local/demo).
+    password_reset_return_token: bool = True
+
     @property
     def resolved_database_url(self) -> str:
         if self.database_url and str(self.database_url).strip():

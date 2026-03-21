@@ -188,10 +188,20 @@ def reorder_lists(
     viewer: User = Depends(get_effective_user),
 ):
     lists = db.query(BoardList).filter(BoardList.board_id == board_id).all()
+    if not lists:
+        raise HTTPException(400, "No lists on this board")
     by_id = {x.id: x for x in lists}
-    for pos, lid in enumerate(body.list_ids_in_order):
-        if lid in by_id:
-            by_id[lid].position = pos
+    ordered_ids = body.list_ids_in_order
+    expected = set(by_id.keys())
+    if set(ordered_ids) != expected or len(ordered_ids) != len(expected):
+        raise HTTPException(400, "list_ids_in_order must list each board column exactly once")
+    # First column by position (To Do) stays pinned — cannot be reordered.
+    sorted_by_pos = sorted(lists, key=lambda x: x.position)
+    pinned_id = sorted_by_pos[0].id
+    if ordered_ids[0] != pinned_id:
+        raise HTTPException(400, "The first column is fixed and cannot be moved")
+    for pos, lid in enumerate(ordered_ids):
+        by_id[lid].position = pos
     db.commit()
     schedule_board_refresh(background_tasks, board_id)
     board = _load_board(db, board_id)

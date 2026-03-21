@@ -1,8 +1,13 @@
 import { useState } from "react";
+import { cn } from "../lib/utils.js";
 import Sidebar from "./Sidebar.jsx";
 import TopNav from "./TopNav.jsx";
 
-export default function Layout({ children, onNewTask, newTaskLoading = false }) {
+/**
+ * @param {{ children: React.ReactNode, onNewTask?: () => void, newTaskLoading?: boolean, mainClassName?: string }} props
+ * mainClassName — e.g. `overflow-hidden` for Kanban (nested scroll breaks @hello-pangea/dnd when main scrolls).
+ */
+export default function Layout({ children, onNewTask, newTaskLoading = false, mainClassName }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -20,7 +25,7 @@ export default function Layout({ children, onNewTask, newTaskLoading = false }) 
           onOpenMobileMenu={() => setMobileOpen(true)}
           newTaskLoading={newTaskLoading}
         />
-        <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+        <main className={cn("min-h-0 flex-1 overflow-auto", mainClassName)}>{children}</main>
       </div>
     </div>
   );

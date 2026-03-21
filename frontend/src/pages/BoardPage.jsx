@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DragDropContext } from "@hello-pangea/dnd";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import Layout from "../components/Layout.jsx";
 import KanbanColumn from "../components/KanbanColumn.jsx";
 import TaskModal from "../components/TaskModal.jsx";
@@ -18,6 +18,20 @@ function filterTasksByMember(tasks, memberId) {
   return tasks.filter((t) => t.assignees?.some((a) => String(a.id) === memberId));
 }
 
+function filterTasksBySearch(tasks, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return tasks;
+  return tasks.filter((t) => {
+    if ((t.title ?? "").toLowerCase().includes(q)) return true;
+    return (t.labels ?? []).some((lb) => (lb.name ?? "").toLowerCase().includes(q));
+  });
+}
+
+function filterTasksByPriority(tasks, priority) {
+  if (!priority) return tasks;
+  return tasks.filter((t) => t.priority === priority);
+}
+
 function initials(name) {
   return name
     .split(" ")
@@ -29,12 +43,16 @@ function initials(name) {
 
 export default function BoardPage() {
   const boardId = DEFAULT_BOARD_ID;
-  const { board, loading, error, loadBoard, selectedTaskId, openTask, closeTask, moveTaskLocal } = useBoardStore();
+  const { board, loading, error, loadBoard, selectedTaskId, openTask, closeTask, moveTaskLocal, reorderListsLocal } =
+    useBoardStore();
   const [saving, setSaving] = useState(false);
   const draggingRef = useRef(false);
 
   const [teamUsers, setTeamUsers] = useState([]);
   const [memberFilter, setMemberFilter] = useState("");
+  const [cardSearch, setCardSearch] = useState("");
+  /** "", or urgent | high | medium | low */
+  const [priorityFilter, setPriorityFilter] = useState("");
 
   const [addListOpen, setAddListOpen] = useState(false);
   const [newListName, setNewListName] = useState("");
@@ -51,6 +69,8 @@ export default function BoardPage() {
   const [exportBusy, setExportBusy] = useState(false);
   const [exportErr, setExportErr] = useState("");
   const [newTaskBusy, setNewTaskBusy] = useState(false);
+  /** Which list is currently creating a task (column + header New task share this) */
+  const [addingListId, setAddingListId] = useState(null);
 
   useEffect(() => {
     loadBoard(boardId);
@@ -82,12 +102,39 @@ export default function BoardPage() {
 
   const onDragEnd = useCallback(
     async (result) => {
-      const { destination, source, draggableId } = result;
+      const { destination, source, draggableId, type } = result;
       if (!destination) return;
+
+      if (type === "COLUMN") {
+        if (destination.droppableId !== "board-columns") return;
+        if (source.index === destination.index) return;
+        let destIndex = destination.index;
+        if (destIndex === 0 && source.index !== 0) destIndex = 1;
+        if (source.index === destIndex) return;
+
+        reorderListsLocal(source.index, destIndex);
+        setSaving(true);
+        try {
+          const nextOrder = useBoardStore.getState().board?.lists?.map((l) => l.id) ?? [];
+          await api.post(`/boards/${boardId}/lists/reorder`, {
+            list_ids_in_order: nextOrder,
+          });
+          await loadBoard(boardId);
+        } catch {
+          await loadBoard(boardId);
+        } finally {
+          setSaving(false);
+        }
+        return;
+      }
+
+      if (type !== "TASK") return;
       if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
       const taskId = Number(draggableId);
+      if (Number.isNaN(taskId)) return;
       const listId = Number(destination.droppableId);
+      if (Number.isNaN(listId)) return;
       const position = destination.index;
 
       moveTaskLocal(taskId, listId, position);
@@ -104,27 +151,36 @@ export default function BoardPage() {
         setSaving(false);
       }
     },
-    [boardId, loadBoard, moveTaskLocal]
+    [boardId, loadBoard, moveTaskLocal, reorderListsLocal]
   );
 
-  const handleNewTask = async () => {
+  const handleAddTaskToList = useCallback(
+    async (listId) => {
+      if (listId == null) return;
+      setAddingListId(listId);
+      setNewTaskBusy(true);
+      try {
+        const created = await api.post("/tasks", {
+          title: "New task",
+          list_id: listId,
+          priority: "medium",
+        });
+        await loadBoard(boardId);
+        openTask(created.id);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setAddingListId(null);
+        setNewTaskBusy(false);
+      }
+    },
+    [boardId, loadBoard, openTask]
+  );
+
+  const handleNewTask = useCallback(() => {
     if (!board?.lists?.length) return;
-    const listId = board.lists[0].id;
-    setNewTaskBusy(true);
-    try {
-      const created = await api.post("/tasks", {
-        title: "New task",
-        list_id: listId,
-        priority: "medium",
-      });
-      await loadBoard(boardId);
-      openTask(created.id);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setNewTaskBusy(false);
-    }
-  };
+    void handleAddTaskToList(board.lists[0].id);
+  }, [board?.lists, handleAddTaskToList]);
 
   async function submitNewList(e) {
     e.preventDefault();
@@ -181,17 +237,26 @@ export default function BoardPage() {
     }
   }
 
+  const boardFiltersActive = Boolean(memberFilter) || Boolean(cardSearch.trim()) || Boolean(priorityFilter);
+
   const listsForDisplay = useMemo(() => {
     if (!board?.lists) return [];
-    return board.lists.map((col) => ({
-      ...col,
-      tasks: filterTasksByMember(col.tasks ?? [], memberFilter),
-    }));
-  }, [board?.lists, memberFilter]);
+    return board.lists.map((col) => {
+      let tasks = col.tasks ?? [];
+      tasks = filterTasksByMember(tasks, memberFilter);
+      tasks = filterTasksBySearch(tasks, cardSearch);
+      tasks = filterTasksByPriority(tasks, priorityFilter);
+      return { ...col, tasks };
+    });
+  }, [board?.lists, memberFilter, cardSearch, priorityFilter]);
 
   return (
-    <Layout onNewTask={handleNewTask} newTaskLoading={newTaskBusy}>
-      <div className="flex h-full min-h-0 flex-col bg-gradient-to-b from-slate-50 to-slate-100/80">
+    <Layout
+      onNewTask={handleNewTask}
+      newTaskLoading={newTaskBusy}
+      mainClassName="overflow-hidden"
+    >
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100/80 dark:from-background dark:to-background">
         <div className="border-b border-border bg-card/60 px-6 py-4 backdrop-blur">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -312,15 +377,28 @@ export default function BoardPage() {
           <div className="mt-4 flex flex-wrap gap-2">
             <input
               type="search"
+              value={cardSearch}
+              onChange={(e) => setCardSearch(e.target.value)}
               placeholder="Search cards…"
-              className="rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-400/40"
+              aria-label="Search cards by title or label"
+              className="min-w-[10rem] flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-brand-400/40 sm:max-w-xs sm:flex-none"
             />
-            <select className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-              <option>All priorities</option>
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              aria-label="Filter by priority"
+              className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground"
+            >
+              <option value="">All priorities</option>
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
             </select>
             <select
               value={memberFilter}
               onChange={(e) => setMemberFilter(e.target.value)}
+              aria-label="Filter by assignee"
               className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground"
             >
               <option value="">All members</option>
@@ -330,9 +408,9 @@ export default function BoardPage() {
                 </option>
               ))}
             </select>
-            {memberFilter && (
-              <p className="w-full text-xs text-amber-800">
-                Filtering by assignee — drag-and-drop is paused until you clear the filter.
+            {boardFiltersActive && (
+              <p className="w-full text-xs text-amber-800 dark:text-amber-200/90">
+                Filters are on — moving tasks and columns is paused until you clear them.
               </p>
             )}
           </div>
@@ -351,15 +429,44 @@ export default function BoardPage() {
               }}
             >
               <div className="flex h-full min-h-0 items-stretch gap-4 pb-4">
-                {board.lists.map((col, idx) => (
-                  <KanbanColumn
-                    key={col.id}
-                    column={listsForDisplay[idx]}
-                    taskCount={col.tasks?.length ?? 0}
-                    isDragDisabled={Boolean(memberFilter)}
-                    onOpenTask={openTask}
-                  />
-                ))}
+                <Droppable droppableId="board-columns" type="COLUMN" direction="horizontal">
+                  {(boardProvided) => (
+                    <div
+                      ref={boardProvided.innerRef}
+                      {...boardProvided.droppableProps}
+                      className="flex h-full min-h-0 items-stretch gap-4"
+                    >
+                      {board.lists.map((col, idx) => (
+                        <Draggable
+                          key={col.id}
+                          draggableId={`list-${col.id}`}
+                          index={idx}
+                          isDragDisabled={idx === 0 || boardFiltersActive}
+                        >
+                          {(colProvided) => (
+                            <div
+                              ref={colProvided.innerRef}
+                              {...colProvided.draggableProps}
+                              className="flex h-full min-h-0 w-72 shrink-0 flex-col"
+                            >
+                              <KanbanColumn
+                                column={listsForDisplay[idx]}
+                                taskCount={listsForDisplay[idx]?.tasks?.length ?? 0}
+                                isDragDisabled={boardFiltersActive}
+                                isColumnDragDisabled={idx === 0 || boardFiltersActive}
+                                columnDragHandleProps={idx === 0 ? undefined : colProvided.dragHandleProps}
+                                onOpenTask={openTask}
+                                onAddTask={handleAddTaskToList}
+                                addTaskBusy={addingListId === col.id}
+                              />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {boardProvided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
                 <div className="flex w-72 shrink-0 flex-col gap-2">
                   {!addListOpen ? (
                     <button
