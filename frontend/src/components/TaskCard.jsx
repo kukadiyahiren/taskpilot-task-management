@@ -1,4 +1,6 @@
+import { forwardRef } from "react";
 import { columnStripe, priorityDot } from "../lib/priority";
+import { cn } from "../lib/utils.js";
 
 function initials(name) {
   return name
@@ -9,15 +11,45 @@ function initials(name) {
     .toUpperCase();
 }
 
-export default function TaskCard({ task, columnAccent, onOpen }) {
+const TaskCard = forwardRef(function TaskCard(
+  { task, columnAccent, onOpen, isDragging, className, ...rest },
+  ref
+) {
   const pct =
     task.checklist_total > 0 ? Math.round((task.checklist_done / task.checklist_total) * 100) : 0;
 
+  const {
+    className: rbdClassName,
+    style,
+    onClick: rbdOnClick,
+    onKeyDown: rbdOnKeyDown,
+    ...rbdRest
+  } = rest;
+
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(task.id)}
-      className="group relative w-full rounded-xl border border-slate-200/90 bg-white p-3 text-left shadow-card transition hover:border-brand-200 hover:shadow-md"
+    <div
+      ref={ref}
+      role="button"
+      tabIndex={0}
+      style={style}
+      onClick={(e) => {
+        rbdOnClick?.(e);
+        if (!e.defaultPrevented) onOpen(task.id);
+      }}
+      onKeyDown={(e) => {
+        rbdOnKeyDown?.(e);
+        if (!e.defaultPrevented && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onOpen(task.id);
+        }
+      }}
+      className={cn(
+        "group relative w-full cursor-grab rounded-xl border border-slate-200/90 bg-white p-3 text-left shadow-card transition hover:border-brand-200 hover:shadow-md active:cursor-grabbing",
+        isDragging && "dragging-task",
+        className,
+        rbdClassName
+      )}
+      {...rbdRest}
     >
       <div
         className={`pointer-events-none absolute right-0 top-0 h-16 w-1 rounded-l bg-gradient-to-b ${columnStripe[columnAccent] || "from-brand-500"} to-transparent opacity-90`}
@@ -74,6 +106,8 @@ export default function TaskCard({ task, columnAccent, onOpen }) {
           </span>
         </div>
       </div>
-    </button>
+    </div>
   );
-}
+});
+
+export default TaskCard;

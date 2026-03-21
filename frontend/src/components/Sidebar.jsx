@@ -156,9 +156,9 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
         <div>
           <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Team</p>
           <div className="space-y-0.5">
-            <PlaceholderItem icon={Users} label="Members" collapsed={collapsed} />
-            <PlaceholderItem icon={Video} label="Meetings" badge={meetingsBadge} collapsed={collapsed} />
-            <PlaceholderItem icon={FileText} label="Files" collapsed={collapsed} />
+            <NavItem to="/members" icon={Users} label="Members" collapsed={collapsed} />
+            <NavItem to="/meetings" icon={Video} label="Meetings" badge={meetingsBadge} collapsed={collapsed} />
+            <NavItem to="/files" icon={FileText} label="Files" collapsed={collapsed} />
           </div>
         </div>
         <div>

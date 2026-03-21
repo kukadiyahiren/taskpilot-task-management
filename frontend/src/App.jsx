@@ -2,6 +2,9 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Dashboard from "./pages/Dashboard.jsx";
 import BoardPage from "./pages/BoardPage.jsx";
 import MyTasksPage from "./pages/MyTasksPage.jsx";
+import MembersPage from "./pages/MembersPage.jsx";
+import MeetingsPage from "./pages/MeetingsPage.jsx";
+import FilesPage from "./pages/FilesPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import { getAccessToken } from "./lib/authStorage.js";
 
@@ -35,6 +38,30 @@ export default function App() {
         element={
           <RequireAuth>
             <MyTasksPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/members"
+        element={
+          <RequireAuth>
+            <MembersPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/meetings"
+        element={
+          <RequireAuth>
+            <MeetingsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/files"
+        element={
+          <RequireAuth>
+            <FilesPage />
           </RequireAuth>
         }
       />

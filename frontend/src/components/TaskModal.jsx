@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api/client.js";
 import { priorityDot, priorityLabel } from "../lib/priority.js";
 import { useBoardStore } from "../store/boardStore.js";
+
+const EXIT_MS = 220;
 
 function formatAgo(iso) {
   const d = new Date(iso);
@@ -13,6 +15,15 @@ function formatAgo(iso) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+function userInitials(name) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 export default function TaskModal({ taskId, boardId, onClose }) {
   const { loadBoard, refreshTaskInBoard } = useBoardStore();
   const [task, setTask] = useState(null);
@@ -21,28 +32,68 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   const [saving, setSaving] = useState(false);
   const [titleEdit, setTitleEdit] = useState("");
   const [descEdit, setDescEdit] = useState("");
+  const [teamUsers, setTeamUsers] = useState([]);
+  const [assigneeIds, setAssigneeIds] = useState([]);
+  const [exiting, setExiting] = useState(false);
+  const exitTimerRef = useRef(null);
+  const exitStartedRef = useRef(false);
+
+  const requestClose = useCallback(() => {
+    if (exitStartedRef.current) return;
+    exitStartedRef.current = true;
+    setExiting(true);
+    exitTimerRef.current = window.setTimeout(() => {
+      exitTimerRef.current = null;
+      onClose();
+    }, EXIT_MS);
+  }, [onClose]);
+
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current) window.clearTimeout(exitTimerRef.current);
+    };
+  }, []);
 
   const load = useCallback(async () => {
     const t = await api.get(`/tasks/${taskId}`);
     setTask(t);
     setTitleEdit(t.title);
     setDescEdit(t.description ?? "");
+    setAssigneeIds((t.assignees ?? []).map((a) => a.id));
   }, [taskId]);
 
   useEffect(() => {
     load().catch(console.error);
   }, [load]);
 
-  const saveMeta = async () => {
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get("/users")
+      .then((users) => {
+        if (!cancelled) setTeamUsers(users);
+      })
+      .catch(() => {
+        if (!cancelled) setTeamUsers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId]);
+
+  const saveMeta = async (opts = {}) => {
+    const closeAfter = opts.closeAfter === true;
     if (!task) return;
     setSaving(true);
     try {
       const updated = await api.patch(`/tasks/${taskId}`, {
         title: titleEdit,
         description: descEdit,
+        assignee_ids: assigneeIds,
       });
       setTask(updated);
       await refreshTaskInBoard(taskId);
+      if (closeAfter) requestClose();
     } finally {
       setSaving(false);
     }
@@ -54,6 +105,25 @@ export default function TaskModal({ taskId, boardId, onClose }) {
       const updated = await api.patch(`/tasks/${taskId}`, { priority: p });
       setTask(updated);
       await refreshTaskInBoard(taskId);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleAssignee = async (userId) => {
+    if (!task) return;
+    const next = assigneeIds.includes(userId)
+      ? assigneeIds.filter((id) => id !== userId)
+      : [...assigneeIds, userId];
+    setAssigneeIds(next);
+    setSaving(true);
+    try {
+      const updated = await api.patch(`/tasks/${taskId}`, { assignee_ids: next });
+      setTask(updated);
+      setAssigneeIds((updated.assignees ?? []).map((a) => a.id));
+      await refreshTaskInBoard(taskId);
+    } catch {
+      setAssigneeIds((task.assignees ?? []).map((a) => a.id));
     } finally {
       setSaving(false);
     }
@@ -82,12 +152,16 @@ export default function TaskModal({ taskId, boardId, onClose }) {
     if (!confirm("Delete this task?")) return;
     await api.delete(`/tasks/${taskId}`);
     await loadBoard(boardId);
-    onClose();
+    requestClose();
   };
 
   if (!task) {
     return createPortal(
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+      <div
+        className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity duration-200 ease-out ${
+          exiting ? "opacity-0" : "opacity-100"
+        }`}
+      >
         <div className="rounded-2xl bg-white px-8 py-6 shadow-modal">Loading…</div>
       </div>,
       document.body
@@ -101,15 +175,26 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   const pct = totalC ? Math.round((doneC / totalC) * 100) : 0;
 
   const modal = (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/45 p-4 backdrop-blur-sm md:pt-12">
+    <div
+      role="presentation"
+      className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/45 p-4 backdrop-blur-sm transition-opacity duration-200 ease-out md:pt-12 ${
+        exiting ? "pointer-events-none opacity-0" : "opacity-100"
+      }`}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) requestClose();
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
-        className="relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-modal md:flex-row"
+        className={`relative flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-modal transition-all duration-200 ease-out md:flex-row ${
+          exiting ? "translate-y-1 scale-[0.98] opacity-0" : "translate-y-0 scale-100 opacity-100"
+        }`}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <button
           type="button"
-          onClick={onClose}
+          onClick={requestClose}
           className="absolute right-4 top-4 z-10 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           aria-label="Close"
         >
@@ -169,7 +254,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
               <button
                 type="button"
                 disabled={saving}
-                onClick={saveMeta}
+                onClick={() => saveMeta({ closeAfter: true })}
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
               >
                 Save
@@ -187,19 +272,31 @@ export default function TaskModal({ taskId, boardId, onClose }) {
             </div>
           </div>
 
-          <div className="mb-4 flex flex-wrap gap-2">
-            {task.assignees?.map((u) => (
-              <div key={u.id} className="flex items-center gap-2 rounded-full bg-slate-100 py-1 pl-1 pr-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
-                  {u.name
-                    .split(" ")
-                    .map((x) => x[0])
-                    .join("")
-                    .slice(0, 2)}
-                </span>
-                <span className="text-sm font-medium text-slate-700">{u.name}</span>
-              </div>
-            ))}
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Assignees
+            </label>
+            <p className="mb-2 text-xs text-slate-500">Checked teammates are saved to this task for everyone on the board.</p>
+            <ul className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/80 p-2">
+              {teamUsers.map((u) => (
+                <li key={u.id}>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-white">
+                    <input
+                      type="checkbox"
+                      checked={assigneeIds.includes(u.id)}
+                      disabled={saving}
+                      onChange={() => toggleAssignee(u.id)}
+                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
+                      {userInitials(u.name)}
+                    </span>
+                    <span className="min-w-0 flex-1 text-sm font-medium text-slate-800">{u.name}</span>
+                    <span className="truncate text-xs text-slate-400">{u.email}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div className="border-b border-slate-200">
