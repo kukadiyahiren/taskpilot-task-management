@@ -107,7 +107,7 @@ def seed_if_empty(db: Session) -> None:
 
     sync_demo_users(db)
 
-    ws = Workspace(name="Acme Corp.")
+    ws = Workspace(name="Tuvoc Tech.")
     db.add(ws)
     db.flush()
 

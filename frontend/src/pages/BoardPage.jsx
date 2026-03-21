@@ -182,6 +182,22 @@ export default function BoardPage() {
     void handleAddTaskToList(board.lists[0].id);
   }, [board?.lists, handleAddTaskToList]);
 
+  const handleRenameList = useCallback(
+    async (listId, name) => {
+      setSaving(true);
+      try {
+        await api.patch(`/boards/lists/${listId}`, { name });
+        await loadBoard(boardId);
+      } catch (e) {
+        console.error(e);
+        await loadBoard(boardId);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [boardId, loadBoard]
+  );
+
   async function submitNewList(e) {
     e.preventDefault();
     setAddListError("");
@@ -458,6 +474,8 @@ export default function BoardPage() {
                                 onOpenTask={openTask}
                                 onAddTask={handleAddTaskToList}
                                 addTaskBusy={addingListId === col.id}
+                                onRenameList={handleRenameList}
+                                renameDisabled={saving}
                               />
                             </div>
                           )}

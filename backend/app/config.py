@@ -1,3 +1,4 @@
+from pathlib import Path
 from urllib.parse import quote_plus
 
 from pydantic import Field
@@ -23,6 +24,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
 
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    # Directory for task file uploads (created on startup if missing)
+    upload_dir: str = str(Path(__file__).resolve().parent.parent / "var" / "uploads")
 
     # When True, POST /auth/forgot-password includes reset_token in JSON (no email server needed for local/demo).
     password_reset_return_token: bool = True

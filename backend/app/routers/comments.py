@@ -7,6 +7,7 @@ from app.models import Comment, Task
 from app.realtime.board_hub import schedule_board_refresh
 from app.realtime.board_resolve import board_id_for_task
 from app.schemas import CommentCreate, CommentRead
+from app.services.activity_log import log_activity
 from app.services.user_read import public_user_read
 
 router = APIRouter(tags=["comments"])
@@ -50,9 +51,18 @@ def post_comment(
         raise HTTPException(404, "Task not found")
     c = Comment(task_id=task_id, user_id=user_id, body=body.body)
     db.add(c)
+    db.flush()
+    bid = board_id_for_task(db, task)
+    log_activity(
+        db,
+        board_id=bid,
+        user_id=user_id,
+        action="commented",
+        detail=f"commented on '{task.title}'",
+        task_id=task_id,
+    )
     db.commit()
     db.refresh(c)
-    bid = board_id_for_task(db, task)
     schedule_board_refresh(background_tasks, bid)
     return CommentRead(
         id=c.id,

@@ -76,6 +76,7 @@ class User(Base):
     )
     comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="user")
     activities: Mapped[list["ActivityLog"]] = relationship("ActivityLog", back_populates="user")
+    task_attachments: Mapped[list["TaskAttachment"]] = relationship("TaskAttachment", back_populates="user")
     password_reset_tokens: Mapped[list["PasswordResetToken"]] = relationship(
         "PasswordResetToken",
         back_populates="user",
@@ -189,6 +190,28 @@ class Task(Base):
         cascade="all, delete-orphan",
     )
     checklists = relationship("Checklist", back_populates="task", cascade="all, delete-orphan")
+    attachments = relationship(
+        "TaskAttachment",
+        back_populates="task",
+        order_by="TaskAttachment.created_at",
+        cascade="all, delete-orphan",
+    )
+
+
+class TaskAttachment(Base):
+    __tablename__ = "task_attachments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    original_filename: Mapped[str] = mapped_column(String(512))
+    stored_path: Mapped[str] = mapped_column(String(512))
+    content_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    task: Mapped["Task"] = relationship("Task", back_populates="attachments")
+    user: Mapped["User"] = relationship("User", back_populates="task_attachments")
 
 
 class Label(Base):
@@ -250,6 +273,7 @@ class ActivityLog(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    task_id: Mapped[int | None] = mapped_column(ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True, index=True)
     action: Mapped[str] = mapped_column(String(64))
     detail: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -150,6 +150,19 @@ class CommentCreate(BaseModel):
     body: str
 
 
+# --- Task attachment ---
+class TaskAttachmentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    task_id: int
+    user_id: int
+    original_filename: str
+    content_type: str | None
+    size_bytes: int
+    created_at: datetime
+    user: UserRead
+
+
 # --- Task (nested) ---
 class TaskSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -181,6 +194,7 @@ class TaskRead(TaskSummary):
     updated_at: datetime | None
     checklists: list[ChecklistRead] = []
     comments: list[CommentRead] = []
+    attachments: list[TaskAttachmentRead] = []
 
 
 class TaskCreate(BaseModel):
@@ -272,6 +286,7 @@ class ActivityRead(BaseModel):
     id: int
     board_id: int
     user_id: int
+    task_id: int | None = None
     action: str
     detail: str
     created_at: datetime

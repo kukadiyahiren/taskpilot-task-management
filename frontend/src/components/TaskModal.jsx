@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api/client.js";
+import { getAccessToken } from "../lib/authStorage.js";
 import { useCurrentUser } from "../hooks/useCurrentUser.js";
 import { hasPermission } from "../lib/rbac.js";
 import { priorityDot, priorityLabel } from "../lib/priority.js";
@@ -41,8 +42,20 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [exiting, setExiting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [activity, setActivity] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [boardLabels, setBoardLabels] = useState([]);
+  const [newLabelName, setNewLabelName] = useState("");
+  const [newLabelBusy, setNewLabelBusy] = useState(false);
+  const [labelBusyId, setLabelBusyId] = useState(null);
+  const [fileBusy, setFileBusy] = useState(false);
+  const [newChecklistItemTitle, setNewChecklistItemTitle] = useState("");
+  const [checklistBusy, setChecklistBusy] = useState(false);
+  const fileInputRef = useRef(null);
   const exitTimerRef = useRef(null);
   const exitStartedRef = useRef(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
   const requestClose = useCallback(() => {
     if (exitStartedRef.current) return;
@@ -71,6 +84,47 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   useEffect(() => {
     load().catch(console.error);
   }, [load]);
+
+  useEffect(() => {
+    if (!boardId) return;
+    const b = useBoardStore.getState().board;
+    if (b && Number(b.id) === Number(boardId) && Array.isArray(b.labels)) {
+      setBoardLabels(b.labels);
+      return;
+    }
+    let cancelled = false;
+    api
+      .get(`/boards/${boardId}`)
+      .then((data) => {
+        if (!cancelled) setBoardLabels(data.labels ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setBoardLabels([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [boardId, taskId]);
+
+  useEffect(() => {
+    if (tab !== "activity" || taskId == null) return;
+    let cancelled = false;
+    setActivityLoading(true);
+    api
+      .get(`/tasks/${taskId}/activity`)
+      .then((rows) => {
+        if (!cancelled) setActivity(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setActivity([]);
+      })
+      .finally(() => {
+        if (!cancelled) setActivityLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, taskId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,9 +203,69 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   };
 
   const toggleItem = async (itemId, done) => {
-    await api.patch(`/checklist-items/${itemId}`, { done: !done });
-    await load();
-    await refreshTaskInBoard(taskId);
+    if (checklistBusy) return;
+    setChecklistBusy(true);
+    try {
+      await api.patch(`/checklist-items/${itemId}`, { done: !done });
+      await load();
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setChecklistBusy(false);
+    }
+  };
+
+  const addChecklist = async () => {
+    setChecklistBusy(true);
+    try {
+      const updated = await api.post(`/tasks/${taskId}/checklists`, { title: "Checklist" });
+      setTask(updated);
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setChecklistBusy(false);
+    }
+  };
+
+  const submitNewChecklistItem = async (e) => {
+    e.preventDefault();
+    const title = newChecklistItemTitle.trim();
+    if (!title) return;
+    setChecklistBusy(true);
+    try {
+      let cl = task.checklists?.[0];
+      if (!cl) {
+        const withList = await api.post(`/tasks/${taskId}/checklists`, { title: "Checklist" });
+        setTask(withList);
+        cl = withList.checklists?.[0];
+      }
+      if (!cl) return;
+      const updated = await api.post(`/tasks/${taskId}/checklists/${cl.id}/items`, { title });
+      setTask(updated);
+      setNewChecklistItemTitle("");
+      await refreshTaskInBoard(taskId);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setChecklistBusy(false);
+    }
+  };
+
+  const updateChecklistItemTitle = async (itemId, previousTitle, newTitle) => {
+    const t = newTitle.trim();
+    if (!t || t === previousTitle) return;
+    setChecklistBusy(true);
+    try {
+      await api.patch(`/checklist-items/${itemId}`, { title: t });
+      await load();
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setChecklistBusy(false);
+    }
   };
 
   const removeTask = async () => {
@@ -165,6 +279,109 @@ export default function TaskModal({ taskId, boardId, onClose }) {
       console.error(e);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const toggleTaskLabel = async (labelId) => {
+    if (!task) return;
+    const ids = new Set((task.labels ?? []).map((l) => l.id));
+    if (ids.has(labelId)) ids.delete(labelId);
+    else ids.add(labelId);
+    const label_ids = [...ids];
+    setLabelBusyId(labelId);
+    setSaving(true);
+    try {
+      const updated = await api.patch(`/tasks/${taskId}`, { label_ids });
+      setTask(updated);
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+      setLabelBusyId(null);
+    }
+  };
+
+  const addBoardLabelToTask = async (e) => {
+    e.preventDefault();
+    const name = newLabelName.trim();
+    if (!name || !boardId) return;
+    setNewLabelBusy(true);
+    try {
+      const created = await api.post(`/boards/${boardId}/labels`, {
+        name,
+        color: "#7c3aed",
+      });
+      setNewLabelName("");
+      setBoardLabels((prev) => [...prev, created]);
+      const ids = [...(task?.labels ?? []).map((l) => l.id), created.id];
+      const updated = await api.patch(`/tasks/${taskId}`, { label_ids: ids });
+      setTask(updated);
+      await refreshTaskInBoard(taskId);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setNewLabelBusy(false);
+    }
+  };
+
+  const uploadAttachment = async (fileList) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    setFileBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const token = getAccessToken();
+      const res = await fetch(`${API_BASE}/tasks/${taskId}/attachments`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      await load();
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFileBusy(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const downloadAttachment = async (att) => {
+    try {
+      const token = getAccessToken();
+      const res = await fetch(`${API_BASE}/tasks/${taskId}/attachments/${att.id}/file`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = att.original_filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteAttachment = async (att) => {
+    if (!confirm(`Remove “${att.original_filename}”?`)) return;
+    setFileBusy(true);
+    try {
+      await api.delete(`/tasks/${taskId}/attachments/${att.id}`);
+      await load();
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFileBusy(false);
     }
   };
 
@@ -375,14 +592,108 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                 </form>
               </div>
             )}
-            {tab !== "comments" && (
-              <p className="text-sm text-muted-foreground">This tab is a placeholder for the full product experience.</p>
+            {tab === "activity" && (
+              <div className="space-y-3">
+                {activityLoading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Spinner size="sm" />
+                    Loading activity…
+                  </div>
+                )}
+                {!activityLoading && activity.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No activity yet for this task. Comments, edits, moves, and uploads will show up here.
+                  </p>
+                )}
+                {!activityLoading &&
+                  activity.map((row) => (
+                    <div key={row.id} className="flex gap-3 rounded-lg border border-border/60 bg-muted/40 px-3 py-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-200 text-[10px] font-bold text-violet-800">
+                        {userInitials(row.user?.name ?? "?")}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                          <span className="text-sm font-semibold text-foreground">{row.user?.name}</span>
+                          <span className="text-xs capitalize text-brand-600">{row.action}</span>
+                          <span className="text-xs text-muted-foreground">{formatAgo(row.created_at)}</span>
+                        </div>
+                        <p className="mt-0.5 text-sm text-muted-foreground">{row.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+            {tab === "files" && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    disabled={fileBusy}
+                    onChange={(e) => void uploadAttachment(e.target.files)}
+                  />
+                  <button
+                    type="button"
+                    disabled={fileBusy}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                  >
+                    {fileBusy ? <Spinner size="sm" /> : null}
+                    Upload file
+                  </button>
+                  <span className="text-xs text-muted-foreground">Max 25MB per file.</span>
+                </div>
+                <ul className="space-y-2">
+                  {(task.attachments ?? []).length === 0 && (
+                    <li className="text-sm text-muted-foreground">No files yet.</li>
+                  )}
+                  {(task.attachments ?? []).map((att) => (
+                    <li
+                      key={att.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">{att.original_filename}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(att.size_bytes / 1024).toFixed(1)} KB · {att.user?.name ?? "User"}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void downloadAttachment(att)}
+                          className="rounded-lg border border-border px-2 py-1 text-xs font-medium text-foreground hover:bg-card"
+                        >
+                          Download
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deleteAttachment(att)}
+                          disabled={fileBusy}
+                          className="rounded-lg border border-red-500/30 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-500/10 dark:text-red-300"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {tab === "ai" && (
+              <p className="text-sm text-muted-foreground">
+                AI suggestions for this task are not enabled in this build.
+              </p>
             )}
           </div>
         </div>
 
         <aside className="w-full shrink-0 border-t border-border bg-muted/50 p-6 md:w-72 md:border-l md:border-t-0">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Checklist</h3>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Add items and tick them off. Edit a line by changing the text and clicking away.
+          </p>
           <div className="mb-2 flex justify-between text-sm">
             <span className="font-medium text-foreground">
               {doneC}/{totalC}
@@ -392,34 +703,103 @@ export default function TaskModal({ taskId, boardId, onClose }) {
           <div className="mb-4 h-2 overflow-hidden rounded-full bg-muted">
             <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
           </div>
+          {!checklist && (
+            <div className="mb-4 rounded-lg border border-dashed border-border bg-card/60 px-3 py-3 text-center">
+              <p className="mb-2 text-xs text-muted-foreground">No checklist on this task yet.</p>
+              <button
+                type="button"
+                disabled={checklistBusy}
+                onClick={() => void addChecklist()}
+                className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+              >
+                {checklistBusy ? "Working…" : "Start checklist"}
+              </button>
+            </div>
+          )}
           <ul className="space-y-2">
             {items.map((it) => (
               <li key={it.id} className="flex items-start gap-2">
                 <input
                   type="checkbox"
                   checked={it.done}
+                  disabled={checklistBusy}
                   onChange={() => toggleItem(it.id, it.done)}
                   className="mt-1 rounded border-border text-brand-600 focus:ring-brand-500"
                 />
-                <span className={`text-sm ${it.done ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                  {it.title}
-                </span>
+                <input
+                  key={`${it.id}-${it.title}`}
+                  type="text"
+                  defaultValue={it.title}
+                  disabled={checklistBusy}
+                  aria-label="Checklist item title"
+                  onBlur={(e) => void updateChecklistItemTitle(it.id, it.title, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur();
+                  }}
+                  className={`min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 py-0.5 text-sm outline-none focus:border-brand-300 focus:ring-1 focus:ring-brand-400/30 ${it.done ? "text-muted-foreground line-through" : "text-foreground"}`}
+                />
               </li>
             ))}
           </ul>
+          <form onSubmit={submitNewChecklistItem} className="mt-3 flex flex-col gap-2">
+            <input
+              value={newChecklistItemTitle}
+              onChange={(e) => setNewChecklistItemTitle(e.target.value)}
+              placeholder="New checklist item…"
+              disabled={checklistBusy}
+              className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-brand-400/40"
+            />
+            <button
+              type="submit"
+              disabled={checklistBusy || !newChecklistItemTitle.trim()}
+              className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              {checklistBusy ? "Saving…" : "Add item"}
+            </button>
+          </form>
 
           <h3 className="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Labels</h3>
-          <div className="flex flex-wrap gap-2">
-            {task.labels?.map((lb) => (
-              <span
-                key={lb.id}
-                className="rounded-md px-2 py-1 text-xs font-semibold text-white"
-                style={{ backgroundColor: lb.color }}
-              >
-                {lb.name}
-              </span>
-            ))}
-          </div>
+          <p className="mb-2 text-xs text-muted-foreground">Toggle board labels on this card or create a new one.</p>
+          <ul className="mb-3 max-h-48 space-y-1.5 overflow-y-auto rounded-lg border border-border bg-card/80 p-2">
+            {boardLabels.map((lb) => {
+              const on = (task.labels ?? []).some((l) => l.id === lb.id);
+              return (
+                <li key={lb.id}>
+                  <button
+                    type="button"
+                    disabled={labelBusyId === lb.id || saving}
+                    onClick={() => void toggleTaskLabel(lb.id)}
+                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition hover:bg-muted ${on ? "ring-2 ring-brand-400/40" : ""}`}
+                  >
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full border border-white/30"
+                      style={{ backgroundColor: lb.color }}
+                    />
+                    <span className="flex-1 truncate font-medium text-foreground">{lb.name}</span>
+                    {on && <span className="text-xs text-brand-600">On</span>}
+                  </button>
+                </li>
+              );
+            })}
+            {boardLabels.length === 0 && (
+              <li className="px-2 py-2 text-xs text-muted-foreground">No labels on this board yet — add one below.</li>
+            )}
+          </ul>
+          <form onSubmit={addBoardLabelToTask} className="flex flex-col gap-2">
+            <input
+              value={newLabelName}
+              onChange={(e) => setNewLabelName(e.target.value)}
+              placeholder="New label name"
+              className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-brand-400/40"
+            />
+            <button
+              type="submit"
+              disabled={newLabelBusy || !newLabelName.trim()}
+              className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            >
+              {newLabelBusy ? "Adding…" : "Create & apply label"}
+            </button>
+          </form>
 
           {canDelete && (
             <button

@@ -16,6 +16,7 @@ def _activity_read(r: ActivityLog) -> ActivityRead:
         id=r.id,
         board_id=r.board_id,
         user_id=r.user_id,
+        task_id=r.task_id,
         action=r.action,
         detail=r.detail,
         created_at=r.created_at,
