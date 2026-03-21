@@ -9,11 +9,76 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env   # edit MYSQL_* (and JWT vars if needed) — see MySQL below
 alembic upgrade head
-# Optional: SQLite file path via env
-# export DATABASE_URL=sqlite:///./taskpilot.db
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
 ```
+
+### MySQL (full database — local server, no Docker)
+
+1. **Install and start MySQL** on your machine (e.g. Ubuntu: `sudo apt install mysql-server`, then `sudo systemctl start mysql`).
+
+2. **Create the database and user** (one command from the `backend` folder):
+
+   ```bash
+   cd backend
+   mysql -u root -p < scripts/init_mysql.sql
+   ```
+
+   On Ubuntu, if `root` has no password and uses a socket plugin, use:
+
+   ```bash
+   sudo mysql < scripts/init_mysql.sql
+   ```
+
+   This creates database **`team-task-board`** (utf8mb4) and user **`teamtask`** / password **`password`** (same as `.env.example`). The script **drops and recreates** that user each run so the password resets (**1045** fixes).
+
+   **`Access denied` (1045):** Run `sudo mysql < scripts/init_mysql.sql` again and align `.env` `MYSQL_USER` / `MYSQL_PASSWORD` with the SQL script. Remove any conflicting **`DATABASE_URL`** line if you intend to use **`MYSQL_*`** only.
+
+3. **Configure the API** — copy `.env.example` to `.env`. Use **`MYSQL_*`** variables (the app builds the SQLAlchemy URL and URL-encodes the password):
+
+   ```env
+   MYSQL_USER=teamtask
+   MYSQL_PASSWORD=password
+   MYSQL_HOST=localhost
+   MYSQL_PORT=3306
+   MYSQL_DB=team-task-board
+   ```
+
+   Optional: set **`DATABASE_URL`** to override `MYSQL_*` (e.g. `sqlite:///./taskpilot.db` for a file DB). If you still have an old `DATABASE_URL=...taskpilot...` line, remove it or it will ignore `MYSQL_*`.
+
+4. **Create all tables** (Alembic) and **start the server**:
+
+   ```bash
+   pip install -r requirements.txt
+   alembic upgrade head
+   uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+   ```
+
+   On startup, **`seed_if_empty()`** loads demo data (workspace, board, tasks, comments, checklists, meetings, activity) **only if** the database has no workspace yet — so you get the full schema **and** sample rows in MySQL.
+
+5. **Alembic error: `Can't locate revision identified by '…'`**  
+   The `alembic_version` row in MySQL points at a migration file that is not in this repo (e.g. an old or other project revision). This project only ships revision **`e1769675d658`** (`alembic/versions/e1769675d658_initial.py`).
+
+   **If you can drop tables** (no data to keep), reset schema then migrate:
+
+   ```bash
+   cd backend
+   mysql -u teamtask -p < scripts/reset_schema_mysql.sql   # edit script `USE ...` if MYSQL_DB differs
+   alembic upgrade head
+   ```
+
+   **Do not** only `DELETE FROM alembic_version` if tables like `users` still exist — Alembic will try to create them again and MySQL will error with **“Table 'users' already exists”**. Either run **`reset_schema_mysql.sql`** first, or if the schema already matches this repo and you only need to fix the version row, use:
+
+   ```bash
+   alembic stamp e1769675d658
+   ```
+
+   **`DELETE FROM alembic_version`** is only safe when the database has **no** application tables yet.
+
+### SQLite (local file, no MySQL)
+
+In `.env`: `DATABASE_URL=sqlite:///./taskpilot.db`
 
 On first startup, the API runs `seed_if_empty()` and creates **Acme Corp.**, users, **Q1 2026 Product Sprint** board, lists, tasks, comments, checklists, meetings, and activity rows.
 
@@ -25,7 +90,7 @@ On first startup, the API runs `seed_if_empty()` and creates **Acme Corp.**, use
 | Area | Examples |
 |------|----------|
 | Workspaces & boards | `GET /workspaces`, `GET /workspaces/{id}/boards`, `POST /workspaces/{id}/boards`, `GET /boards/{id}` |
-| Tasks | `POST /tasks`, `GET /tasks/{id}`, `PATCH /tasks/{id}`, `PATCH /tasks/{id}/move`, `DELETE /tasks/{id}` |
+| Tasks | `GET /tasks?board_id=`, `POST /tasks`, `GET /tasks/{id}`, `PATCH /tasks/{id}`, `PATCH /tasks/{id}/move`, `DELETE /tasks/{id}` |
 | Comments | `GET/POST /tasks/{id}/comments` |
 | Checklist | `PATCH /checklist-items/{id}` |
 | Dashboard / analytics | `GET /dashboard/stats`, `GET /analytics/tasks`, `GET /activity/recent`, `GET /workspaces/{id}/meetings` |
@@ -40,16 +105,23 @@ npm install
 npm run dev
 ```
 
-Vite proxies `/api/*` → `http://127.0.0.1:8000` (see `vite.config.js`). The client uses relative `/api` by default.
+Vite proxies `/api/*` to your API (default **`http://127.0.0.1:8010`** in `vite.config.js`). The React app calls `/api/...` in dev.
 
-If the API runs elsewhere, set:
+Start the API in a second terminal:
 
 ```bash
-# frontend/.env.local
-VITE_API_BASE=http://127.0.0.1:8000
+cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
 ```
 
-(and remove or adjust the proxy).
+**`ECONNREFUSED`** means uvicorn isn’t running or the port doesn’t match. If you use port **8000** instead, set `frontend/.env.local`:
+
+```bash
+API_PROXY_TARGET=http://127.0.0.1:8000
+```
+
+Then restart `npm run dev` (Vite reads env only at startup).
+
+For production or no proxy, set `VITE_API_BASE` to the full API origin (see `src/api/client.js`).
 
 ### Routes
 
@@ -69,6 +141,6 @@ alembic upgrade head
 
 ## Tech choices
 
-- **SQLite** by default (`DATABASE_URL`); switch to PostgreSQL by changing the URL and running migrations.
+- **MySQL 8** via **PyMySQL**; connection is built from **`MYSQL_*`** in `.env`, or set **`DATABASE_URL`** to override (e.g. SQLite file).
 - **Zustand** for board + modal state; **React Router** for pages.
 - Demo **user id `1`** (Jamie) is used for comments and activity when posting from the API (no JWT in this scaffold).

@@ -135,12 +135,13 @@ class Task(Base):
     list: Mapped["BoardList"] = relationship("BoardList", back_populates="tasks")
     assignees = relationship("User", secondary=task_assignees)
     labels = relationship("Label", secondary=task_labels)
-    comments: Mapped[list["Comment"]] = relationship(
-        "Comment", back_populates="task", order_by="Comment.created_at", cascade="all, delete-orphan"
+    comments = relationship(
+        "Comment",
+        back_populates="task",
+        order_by="Comment.created_at",
+        cascade="all, delete-orphan",
     )
-    checklists: Mapped[list["Checklist"]] = relationship(
-        "Checklist", back_populates="task", cascade="all, delete-orphan"
-    )
+    checklists = relationship("Checklist", back_populates="task", cascade="all, delete-orphan")
 
 
 class Label(Base):
@@ -176,7 +177,7 @@ class Checklist(Base):
     title: Mapped[str] = mapped_column(String(255), default="Checklist")
 
     task: Mapped["Task"] = relationship("Task", back_populates="checklists")
-    items: Mapped[list["ChecklistItem"]] = relationship(
+    items = relationship(
         "ChecklistItem",
         back_populates="checklist",
         order_by="ChecklistItem.position",
