@@ -1,8 +1,12 @@
+import { getAccessToken } from "../lib/authStorage.js";
+
 const BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
 export async function request(path, options = {}) {
   const { body, ...init } = options;
   const headers = { ...init.headers };
+  const token = getAccessToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   if (body !== undefined && !(body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }

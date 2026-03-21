@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.deps import get_effective_user_id
 from app.models import Comment, Task
 from app.schemas import CommentCreate, CommentRead, UserRead
 
@@ -34,7 +35,12 @@ def list_comments(task_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{task_id}/comments", response_model=CommentRead)
-def post_comment(task_id: int, body: CommentCreate, db: Session = Depends(get_db), user_id: int = 1):
+def post_comment(
+    task_id: int,
+    body: CommentCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_effective_user_id),
+):
     task = db.get(Task, task_id)
     if not task:
         raise HTTPException(404, "Task not found")

@@ -35,6 +35,23 @@ class UserRead(UserBase):
     created_at: datetime
 
 
+class UserRegister(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+    password: str = Field(min_length=6, max_length=128)
+    name: str = Field(min_length=1, max_length=255)
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserRead
+
+
 # --- Workspace ---
 class WorkspaceRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import SessionLocal, engine
 from app.models import Base
-from app.routers import activity, analytics, boards, checklist, comments, meetings, tasks, users, workspaces
+from app.routers import activity, analytics, auth, boards, checklist, comments, meetings, tasks, users, workspaces
 from app.seed import seed_if_empty
 
 
@@ -34,6 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(workspaces.router)
 app.include_router(meetings.router)

@@ -12,10 +12,11 @@ import {
   Users,
   Video,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useBoard, useDashboardStats, useWorkspaceMeetings } from "../hooks/useDashboardData.js";
 import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
 import { FALLBACK_BOARD, FALLBACK_MEETINGS, FALLBACK_STATS } from "../lib/dashboardFallbacks.js";
+import { clearAccessToken } from "../lib/authStorage.js";
 import { resolveQueryData } from "../lib/resolveQueryData.js";
 import { cn } from "../lib/utils.js";
 
@@ -78,6 +79,13 @@ function PlaceholderItem({ icon: Icon, label, badge, tag, collapsed }) {
 }
 
 export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }) {
+  const navigate = useNavigate();
+
+  function signOut() {
+    clearAccessToken();
+    navigate("/login", { replace: true });
+  }
+
   const boardQ = useBoard(DEFAULT_BOARD_ID);
   const statsQ = useDashboardStats(WORKSPACE_ID, DEFAULT_BOARD_ID);
   const meetingsQ = useWorkspaceMeetings(WORKSPACE_ID);
@@ -166,6 +174,14 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
           )}
           <button type="button" className="text-slate-400 hover:text-slate-700" aria-label="Settings">
             <Settings className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={signOut}
+            className="text-xs font-medium text-slate-400 hover:text-white"
+            title="Sign out"
+          >
+            Out
           </button>
         </div>
       </div>

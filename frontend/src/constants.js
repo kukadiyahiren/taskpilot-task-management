@@ -2,6 +2,6 @@
 export const WORKSPACE_ID = 1;
 export const DEFAULT_BOARD_ID = 1;
 
-/** Matches `backend/app/seed.py` — Jamie (user id 1). No password check in API yet; UI-only sign-in. */
+/** Matches seeded users in `backend/app/seed.py` — password set to `demo` (run `alembic upgrade` + `set_demo_passwords.py` on old DBs). */
 export const DEMO_LOGIN_EMAIL = "jamie@example.com";
 export const DEMO_LOGIN_PASSWORD = "demo";

@@ -1,8 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Github, Lock, Mail, Users } from "lucide-react";
 import LoginHero from "../components/LoginHero.jsx";
 import { DEMO_LOGIN_EMAIL, DEMO_LOGIN_PASSWORD } from "../constants.js";
+import * as authApi from "../api/auth.js";
+import { getAccessToken, setAccessToken } from "../lib/authStorage.js";
+
+function parseApiError(text) {
+  try {
+    const j = JSON.parse(text);
+    if (typeof j.detail === "string") return j.detail;
+    if (Array.isArray(j.detail))
+      return j.detail.map((e) => (typeof e.msg === "string" ? e.msg : JSON.stringify(e))).join(", ");
+  } catch {
+    /* ignore */
+  }
+  return text || "Something went wrong";
+}
 
 function GoogleIcon() {
   return (
@@ -35,17 +49,35 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [remember, setRemember] = useState(true);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e) {
+  useEffect(() => {
+    if (getAccessToken()) navigate("/", { replace: true });
+  }, [navigate]);
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    // Backend has no JWT yet; mark session for future auth wiring.
-    sessionStorage.setItem("taskpilot_session", "1");
-    if (remember) {
-      localStorage.setItem("taskpilot_remember", "1");
-    } else {
-      localStorage.removeItem("taskpilot_remember");
+    setError("");
+    setLoading(true);
+    try {
+      if (tab === "signup") {
+        const data = await authApi.register({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+        });
+        setAccessToken(data.access_token, remember);
+      } else {
+        const data = await authApi.login({ email: email.trim(), password });
+        setAccessToken(data.access_token, remember);
+      }
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(parseApiError(err.message));
+    } finally {
+      setLoading(false);
     }
-    navigate("/", { replace: true });
   }
 
   return (
@@ -53,13 +85,11 @@ export default function LoginPage() {
       <div className="flex min-h-screen flex-col lg:flex-row">
         <LoginHero />
 
-        {/* —— Right: Auth —— */}
         <section
           className="flex flex-1 flex-col justify-center bg-white px-6 py-10 sm:px-10 lg:w-1/2 lg:px-14 xl:px-20"
           aria-label="Sign in"
         >
           <div className="mx-auto w-full max-w-md">
-            {/* Tabs */}
             <div className="mb-8 flex rounded-xl bg-slate-100/90 p-1 shadow-inner">
               <button
                 type="button"
@@ -96,7 +126,6 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Social */}
             <div className="mt-8 grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -123,6 +152,15 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {error && (
+              <div
+                className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                role="alert"
+              >
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
               {tab === "signup" && (
                 <div>
@@ -136,6 +174,7 @@ export default function LoginPage() {
                       name="name"
                       type="text"
                       autoComplete="name"
+                      required={tab === "signup"}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Jamie Kim"
@@ -188,6 +227,7 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     autoComplete={tab === "signin" ? "current-password" : "new-password"}
                     required
+                    minLength={tab === "signup" ? 6 : undefined}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Your password"
@@ -202,6 +242,7 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                {tab === "signup" && <p className="mt-1 text-xs text-slate-500">At least 6 characters.</p>}
               </div>
 
               {tab === "signin" && (
@@ -218,9 +259,12 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:from-brand-500 hover:to-indigo-500 hover:shadow-xl hover:shadow-brand-500/30 focus:outline-none focus:ring-4 focus:ring-brand-500/30 active:scale-[0.99]"
+                disabled={loading}
+                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:from-brand-500 hover:to-indigo-500 hover:shadow-xl hover:shadow-brand-500/30 focus:outline-none focus:ring-4 focus:ring-brand-500/30 active:scale-[0.99] disabled:opacity-60"
               >
-                {tab === "signin" ? (
+                {loading ? (
+                  "Please wait…"
+                ) : tab === "signin" ? (
                   <>
                     Sign In
                     <span className="transition group-hover:translate-x-0.5" aria-hidden>
@@ -233,13 +277,12 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Demo credentials — aligned with backend seed user */}
             <div className="mt-8 rounded-2xl border border-brand-100 bg-brand-50/90 p-4 text-sm text-slate-700 shadow-sm">
               <p className="mb-2 flex items-center gap-2 font-semibold text-brand-900">
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-200/80 text-xs text-brand-800">
                   ⓘ
                 </span>
-                Demo credentials
+                Demo account
               </p>
               <p className="text-slate-600">
                 Email:{" "}
@@ -252,7 +295,10 @@ export default function LoginPage() {
                 <code className="rounded bg-white/80 px-1.5 py-0.5 font-mono text-xs text-slate-800">
                   {DEMO_LOGIN_PASSWORD}
                 </code>
-                <span className="ml-1 text-xs text-slate-500">(UI demo; API auth not enabled yet)</span>
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                Seeded users use the same password after migration +{" "}
+                <code className="rounded bg-white/60 px-1">python scripts/set_demo_passwords.py</code> on old DBs.
               </p>
             </div>
           </div>

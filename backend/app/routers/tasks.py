@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
+from app.deps import get_effective_user_id
 from app.models import ActivityLog, BoardList, Checklist, ChecklistItem, Comment, Label, Priority, Task, User
 from app.schemas import (
     ChecklistCreate,
@@ -92,7 +93,11 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=TaskRead)
-def create_task(body: TaskCreate, db: Session = Depends(get_db), user_id: int = 1):
+def create_task(
+    body: TaskCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_effective_user_id),
+):
     lst = db.get(BoardList, body.list_id)
     if not lst:
         raise HTTPException(404, "List not found")
@@ -121,7 +126,12 @@ def create_task(body: TaskCreate, db: Session = Depends(get_db), user_id: int = 
 
 
 @router.patch("/{task_id}", response_model=TaskRead)
-def update_task(task_id: int, body: TaskUpdate, db: Session = Depends(get_db), user_id: int = 1):
+def update_task(
+    task_id: int,
+    body: TaskUpdate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_effective_user_id),
+):
     task = db.get(Task, task_id)
     if not task:
         raise HTTPException(404, "Task not found")
@@ -170,7 +180,12 @@ def _reindex_list(db: Session, list_id: int, exclude_task_id: int | None = None)
 
 
 @router.patch("/{task_id}/move", response_model=TaskSummary)
-def move_task(task_id: int, body: TaskMove, db: Session = Depends(get_db), user_id: int = 1):
+def move_task(
+    task_id: int,
+    body: TaskMove,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_effective_user_id),
+):
     task = db.get(Task, task_id)
     if not task:
         raise HTTPException(404, "Task not found")

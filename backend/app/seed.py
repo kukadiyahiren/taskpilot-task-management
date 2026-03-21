@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
+from app.security import hash_password
 from app.models import (
     ActivityLog,
     Board,
@@ -25,11 +26,36 @@ def seed_if_empty(db: Session) -> None:
     ws = Workspace(name="Acme Corp.")
     db.add(ws)
     db.flush()
+    demo_hash = hash_password("demo")
     users = [
-        User(email="jamie@example.com", name="Jamie Kim", role="Manager", avatar_url=None),
-        User(email="sara@example.com", name="Sara Okonkwo", role="Designer", avatar_url=None),
-        User(email="marcus@example.com", name="Marcus Chen", role="Engineer", avatar_url=None),
-        User(email="priya@example.com", name="Priya Nair", role="Engineer", avatar_url=None),
+        User(
+            email="jamie@example.com",
+            name="Jamie Kim",
+            role="Manager",
+            avatar_url=None,
+            password_hash=demo_hash,
+        ),
+        User(
+            email="sara@example.com",
+            name="Sara Okonkwo",
+            role="Designer",
+            avatar_url=None,
+            password_hash=demo_hash,
+        ),
+        User(
+            email="marcus@example.com",
+            name="Marcus Chen",
+            role="Engineer",
+            avatar_url=None,
+            password_hash=demo_hash,
+        ),
+        User(
+            email="priya@example.com",
+            name="Priya Nair",
+            role="Engineer",
+            avatar_url=None,
+            password_hash=demo_hash,
+        ),
     ]
     for u in users:
         db.add(u)

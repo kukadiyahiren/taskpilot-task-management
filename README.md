@@ -85,10 +85,24 @@ On first startup, the API runs `seed_if_empty()` and creates **Acme Corp.**, use
 - OpenAPI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - Health: `GET /health`
 
+### Auth (JWT)
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /auth/register` | Body: `{ "name", "email", "password" }` (password ≥ 6 chars) → `{ access_token, token_type, user }` |
+| `POST /auth/login` | Body: `{ "email", "password" }` → same shape |
+| `GET /auth/me` | Header: `Authorization: Bearer <token>` → current user |
+
+Configure `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` in `.env`.  
+Seeded demo users use password **`demo`** on **new** seeds. If you upgraded an existing DB, run once: `python scripts/set_demo_passwords.py`.
+
+The frontend stores the token in `localStorage` or `sessionStorage` and sends it on API calls; board/task actions attribute activity to the logged-in user when a valid JWT is present.
+
 ### Main API groups
 
 | Area | Examples |
 |------|----------|
+| Auth | `POST /auth/register`, `POST /auth/login`, `GET /auth/me` |
 | Workspaces & boards | `GET /workspaces`, `GET /workspaces/{id}/boards`, `POST /workspaces/{id}/boards`, `GET /boards/{id}` |
 | Tasks | `GET /tasks?board_id=`, `POST /tasks`, `GET /tasks/{id}`, `PATCH /tasks/{id}`, `PATCH /tasks/{id}/move`, `DELETE /tasks/{id}` |
 | Comments | `GET/POST /tasks/{id}/comments` |
