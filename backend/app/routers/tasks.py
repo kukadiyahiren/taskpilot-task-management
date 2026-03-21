@@ -350,8 +350,9 @@ def update_task(
         task.description = body.description
     if body.priority is not None:
         task.priority = Priority(body.priority.value)
-    if body.due_date is not None:
-        task.due_date = body.due_date
+    patch_fields = body.model_dump(exclude_unset=True)
+    if "due_date" in patch_fields:
+        task.due_date = patch_fields["due_date"]
     if body.attachment_count is not None:
         task.attachment_count = body.attachment_count
     if body.list_id is not None:

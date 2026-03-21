@@ -38,6 +38,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
   const [saving, setSaving] = useState(false);
   const [titleEdit, setTitleEdit] = useState("");
   const [descEdit, setDescEdit] = useState("");
+  const [dueDateEdit, setDueDateEdit] = useState("");
   const [teamUsers, setTeamUsers] = useState([]);
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [exiting, setExiting] = useState(false);
@@ -78,6 +79,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
     setTask(t);
     setTitleEdit(t.title);
     setDescEdit(t.description ?? "");
+    setDueDateEdit(t.due_date ?? "");
     setAssigneeIds((t.assignees ?? []).map((a) => a.id));
   }, [taskId]);
 
@@ -165,6 +167,41 @@ export default function TaskModal({ taskId, boardId, onClose }) {
       const updated = await api.patch(`/tasks/${taskId}`, { priority: p });
       setTask(updated);
       await refreshTaskInBoard(taskId);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveDueDate = async () => {
+    if (!task) return;
+    const nextVal = dueDateEdit.trim() ? dueDateEdit.trim() : null;
+    const prevVal = task.due_date ?? null;
+    if (nextVal === prevVal) return;
+    setSaving(true);
+    try {
+      const updated = await api.patch(`/tasks/${taskId}`, { due_date: nextVal });
+      setTask(updated);
+      setDueDateEdit(updated.due_date ?? "");
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+      setDueDateEdit(task.due_date ?? "");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearDueDate = async () => {
+    setDueDateEdit("");
+    if (!task?.due_date) return;
+    setSaving(true);
+    try {
+      const updated = await api.patch(`/tasks/${taskId}`, { due_date: null });
+      setTask(updated);
+      await refreshTaskInBoard(taskId);
+    } catch (e) {
+      console.error(e);
+      setDueDateEdit(task.due_date ?? "");
     } finally {
       setSaving(false);
     }
@@ -457,18 +494,43 @@ export default function TaskModal({ taskId, boardId, onClose }) {
             </div>
           </div>
 
-          <p className="mb-4 text-sm text-muted-foreground">
-            {task.due_date && <span className="mr-3">Due {task.due_date}</span>}
-            {task.labels?.map((lb) => (
-              <span
-                key={lb.id}
-                className="mr-2 inline-block rounded-md px-2 py-0.5 text-xs font-semibold text-white"
-                style={{ backgroundColor: lb.color }}
-              >
-                {lb.name}
-              </span>
-            ))}
-          </p>
+          <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground" htmlFor={`task-due-${taskId}`}>
+                Due date
+              </label>
+              <input
+                id={`task-due-${taskId}`}
+                type="date"
+                value={dueDateEdit}
+                disabled={saving}
+                onChange={(e) => setDueDateEdit(e.target.value)}
+                onBlur={() => void saveDueDate()}
+                className="rounded-lg border border-border bg-muted px-2 py-1 text-sm text-foreground outline-none focus:ring-2 focus:ring-brand-400/40 disabled:opacity-50"
+              />
+              {(dueDateEdit || task.due_date) && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void clearDueDate()}
+                  className="text-xs font-medium text-muted-foreground underline decoration-border hover:text-foreground disabled:opacity-50"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {task.labels?.map((lb) => (
+                <span
+                  key={lb.id}
+                  className="inline-block rounded-md px-2 py-0.5 text-xs font-semibold text-white"
+                  style={{ backgroundColor: lb.color }}
+                >
+                  {lb.name}
+                </span>
+              ))}
+            </div>
+          </div>
 
           <div className="mb-6">
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -496,6 +558,7 @@ export default function TaskModal({ taskId, boardId, onClose }) {
                 onClick={() => {
                   setTitleEdit(task.title);
                   setDescEdit(task.description ?? "");
+                  setDueDateEdit(task.due_date ?? "");
                 }}
                 className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted"
               >

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Draggable, Droppable } from "@hello-pangea/dnd";
-import { GripVertical, Plus } from "lucide-react";
+import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { Spinner } from "./ui/spinner.jsx";
 import TaskCard from "./TaskCard.jsx";
 
@@ -22,6 +22,9 @@ export default function KanbanColumn({
   isColumnDragDisabled = false,
   onRenameList,
   renameDisabled = false,
+  onDeleteList,
+  canDeleteList = false,
+  deleteDisabled = false,
 }) {
   const titleRef = useRef(null);
   const border = accentBorder[column.accent] || "border-t-brand-500";
@@ -93,6 +96,18 @@ export default function KanbanColumn({
             <span className="rounded-full bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
               {headerCount}
             </span>
+            {canDeleteList && onDeleteList ? (
+              <button
+                type="button"
+                disabled={deleteDisabled}
+                onClick={() => onDeleteList(column.id, column.name)}
+                aria-label={`Delete column ${column.name}`}
+                title="Delete column"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border border-red-500/25 bg-card text-red-600 shadow-sm transition hover:bg-red-500/10 disabled:opacity-50 dark:text-red-400"
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

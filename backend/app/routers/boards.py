@@ -179,6 +179,46 @@ def update_list(
     return _board_read(db, board, viewer)
 
 
+@router.delete("/lists/{list_id}", response_model=BoardRead)
+def delete_list(
+    list_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    viewer: User = Depends(get_effective_user),
+):
+    lst = db.get(BoardList, list_id)
+    if not lst:
+        raise HTTPException(404, "List not found")
+    board_id = lst.board_id
+    lists_ordered = (
+        db.query(BoardList).filter(BoardList.board_id == board_id).order_by(BoardList.position).all()
+    )
+    if len(lists_ordered) < 2:
+        raise HTTPException(400, "Cannot delete the only column on this board")
+    first = lists_ordered[0]
+    if lst.id == first.id:
+        raise HTTPException(400, "Cannot delete the first column")
+
+    moving = db.query(Task).filter(Task.list_id == list_id).order_by(Task.position).all()
+    n_first = db.query(Task).filter(Task.list_id == first.id).count()
+    for i, t in enumerate(moving):
+        t.list_id = first.id
+        t.position = n_first + i
+
+    db.delete(lst)
+    db.flush()
+    remaining = (
+        db.query(BoardList).filter(BoardList.board_id == board_id).order_by(BoardList.position).all()
+    )
+    for i, bl in enumerate(remaining):
+        bl.position = i
+    db.commit()
+    schedule_board_refresh(background_tasks, board_id)
+    board = _load_board(db, board_id)
+    assert board is not None
+    return _board_read(db, board, viewer)
+
+
 @router.post("/{board_id}/lists/reorder", response_model=BoardRead)
 def reorder_lists(
     board_id: int,

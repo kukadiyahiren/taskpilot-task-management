@@ -198,6 +198,31 @@ export default function BoardPage() {
     [boardId, loadBoard]
   );
 
+  const handleDeleteList = useCallback(
+    async (listId, listName) => {
+      const n = listName || "this column";
+      if (
+        !confirm(
+          `Delete “${n}”? Any tasks in this column will move to the first column.`
+        )
+      ) {
+        return;
+      }
+      setSaving(true);
+      try {
+        await api.delete(`/boards/lists/${listId}`);
+        await loadBoard(boardId);
+      } catch (e) {
+        console.error(e);
+        alert(e?.message || "Could not delete column");
+        await loadBoard(boardId);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [boardId, loadBoard]
+  );
+
   async function submitNewList(e) {
     e.preventDefault();
     setAddListError("");
@@ -476,6 +501,9 @@ export default function BoardPage() {
                                 addTaskBusy={addingListId === col.id}
                                 onRenameList={handleRenameList}
                                 renameDisabled={saving}
+                                onDeleteList={handleDeleteList}
+                                canDeleteList={idx > 0 && (board?.lists?.length ?? 0) > 1}
+                                deleteDisabled={saving}
                               />
                             </div>
                           )}
