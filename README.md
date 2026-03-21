@@ -1,4 +1,4 @@
-# Task Pilot — task management (FastAPI + React)
+# TaskPilot — task management (FastAPI + React)
 
 Full-stack Kanban / dashboard app: **Python FastAPI** API with **Alembic** migrations, **React (Vite)** UI with **Tailwind CSS** and **@hello-pangea/dnd** drag-and-drop.
 
@@ -156,7 +156,7 @@ There is no separate overdue list endpoint; the table uses board payload + due d
 - `/` — Dashboard (stats, Recharts analytics, activity, overdue table, meetings)
 - `/board` — Kanban board + task modal (edit, comments, checklist, delete)
 - `/my-tasks` — Placeholder until auth + “my tasks” filter API
-- `/login` — TaskFlow sign-in UI
+- `/login` — TaskPilot sign-in UI
 
 ## Migrations workflow
 

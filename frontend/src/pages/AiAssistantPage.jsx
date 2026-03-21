@@ -4,7 +4,7 @@ import { Send, Sparkles } from "lucide-react";
 import Layout from "../components/Layout.jsx";
 import { Spinner } from "../components/ui/spinner.jsx";
 import { api } from "../api/client.js";
-import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
+import { APP_NAME, DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
 import { buildAssistantReply } from "../lib/aiAssistantReplies.js";
 import { cn } from "../lib/utils.js";
 
@@ -23,7 +23,7 @@ export default function AiAssistantPage() {
   const [messages, setMessages] = useState(() => [
     {
       role: "assistant",
-      text: "Hi — I’m your TaskFlow assistant (demo). I read your live board and stats. Ask anything below or tap a suggestion.",
+      text: `Hi — I’m your ${APP_NAME} assistant (demo). I read your live board and stats. Ask anything below or tap a suggestion.`,
     },
   ]);
   const [input, setInput] = useState("");

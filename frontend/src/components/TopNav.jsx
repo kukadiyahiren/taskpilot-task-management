@@ -1,5 +1,7 @@
 import { Bell, Menu, Plus, Search } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { AppLogo } from "./AppLogo.jsx";
+import { APP_NAME } from "../constants.js";
 import { useWorkspaceNotifications } from "../hooks/useWorkspaceNotifications.js";
 import { Button } from "./ui/button.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
@@ -21,6 +23,15 @@ export default function TopNav({ onNewTask, onOpenMobileMenu, newTaskLoading = f
       >
         <Menu className="h-5 w-5" />
       </button>
+
+      <Link
+        to="/"
+        className="flex shrink-0 items-center gap-2 rounded-lg outline-none ring-offset-background transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 lg:hidden"
+        title={APP_NAME}
+      >
+        <AppLogo variant="nav" />
+        <span className="font-display text-base font-bold tracking-tight text-foreground">{APP_NAME}</span>
+      </Link>
 
       <div className="relative min-w-0 max-w-xl flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

@@ -1,4 +1,6 @@
-import { BarChart3, LayoutGrid, Sparkles, Users, Zap } from "lucide-react";
+import { BarChart3, Sparkles, Users, Zap } from "lucide-react";
+import { AppLogo } from "./AppLogo.jsx";
+import { APP_NAME } from "../constants.js";
 
 /** Static marketing panel — no React state, no entrance animations (reliable visibility + fast paint). */
 const FEATURES = [
@@ -49,10 +51,8 @@ export default function LoginHero() {
         {/* Logo */}
         <header className="shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-white/30 sm:h-11 sm:w-11">
-              <LayoutGrid className="h-5 w-5 text-indigo-600 sm:h-6 sm:w-6" strokeWidth={1.75} aria-hidden />
-            </div>
-            <span className="text-lg font-bold tracking-tight text-white sm:text-xl">TaskFlow</span>
+            <AppLogo variant="hero" />
+            <span className="text-lg font-bold tracking-tight text-white sm:text-xl">{APP_NAME}</span>
           </div>
         </header>
 

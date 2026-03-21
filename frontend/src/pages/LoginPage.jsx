@@ -1,11 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, Users } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Lock, Mail, Users, X } from "lucide-react";
 import LoginHero from "../components/LoginHero.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import { Spinner } from "../components/ui/spinner.jsx";
-import { DEMO_LOGIN_EMAIL, DEMO_LOGIN_PASSWORD, DEMO_RBAC_ACCOUNTS } from "../constants.js";
+import { APP_NAME, DEMO_LOGIN_EMAIL, DEMO_LOGIN_PASSWORD, DEMO_RBAC_ACCOUNTS } from "../constants.js";
 import * as authApi from "../api/auth.js";
 import { authMeQueryKey } from "../hooks/useCurrentUser.js";
 import { clearAccessToken, getAccessToken, setAccessToken } from "../lib/authStorage.js";
@@ -42,6 +43,8 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   /** Tracks session so we can show / hide "already signed in" after sign-out on this page */
   const [sessionActive, setSessionActive] = useState(() => Boolean(getAccessToken()));
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
+  const demoTitleId = useId();
 
   function signOutOnThisPage() {
     queryClient.removeQueries({ queryKey: authMeQueryKey });
@@ -56,6 +59,15 @@ export default function LoginPage() {
       document.body.style.overflow = prev;
     };
   }, []);
+
+  useEffect(() => {
+    if (!demoModalOpen) return;
+    function onKey(e) {
+      if (e.key === "Escape") setDemoModalOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [demoModalOpen]);
 
   useEffect(() => {
     const t = searchParams.get("reset") || searchParams.get("token");
@@ -161,22 +173,25 @@ export default function LoginPage() {
         >
           <div className="mx-auto w-full max-w-md shrink-0">
             {sessionActive && (
-              <div className="mb-4 rounded-xl border border-border bg-muted/80 px-4 py-3 text-sm text-foreground">
-                <p className="font-medium">You&apos;re already signed in.</p>
-                <p className="mt-1 text-muted-foreground">
-                  <Link to="/" className="font-semibold text-primary hover:underline">
-                    Go to dashboard
+              <div className="mb-5 flex flex-col gap-3 rounded-xl border border-border bg-card/80 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-medium text-foreground">
+                  Signed in — open the app or sign out to switch accounts.
+                </p>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <Link
+                    to="/"
+                    className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+                  >
+                    Dashboard
                   </Link>
-                  {" · "}
                   <button
                     type="button"
                     onClick={signOutOnThisPage}
-                    className="font-semibold text-primary hover:underline"
+                    className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-muted"
                   >
                     Sign out
-                  </button>{" "}
-                  to use another account.
-                </p>
+                  </button>
+                </div>
               </div>
             )}
             {phase === "auth" && (
@@ -220,8 +235,8 @@ export default function LoginPage() {
                   : phase === "reset"
                     ? "Use the reset code from the previous step (or from your email when SMTP is configured)."
                     : tab === "signin"
-                      ? "Sign in to your TaskFlow workspace"
-                      : "Start your TaskFlow workspace in seconds"}
+                      ? `Sign in to your ${APP_NAME} workspace`
+                      : `Create your ${APP_NAME} workspace in seconds`}
               </p>
             </div>
 
@@ -490,42 +505,130 @@ export default function LoginPage() {
               )}
             </div>
 
-            <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-sm text-foreground shadow-sm dark:border-primary/30 dark:bg-primary/10">
-              <p className="mb-2 flex items-center gap-2 font-semibold text-primary">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-xs text-primary">
-                  ⓘ
-                </span>
-                Demo account
-              </p>
-              <p className="text-muted-foreground">
-                Email:{" "}
-                <code className="rounded bg-card px-1.5 py-0.5 font-mono text-xs text-foreground">
-                  {DEMO_LOGIN_EMAIL}
-                </code>
-              </p>
-              <p className="mt-1 text-muted-foreground">
-                Password:{" "}
-                <code className="rounded bg-card px-1.5 py-0.5 font-mono text-xs text-foreground">
-                  {DEMO_LOGIN_PASSWORD}
-                </code>
-              </p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Seeded users use the same password after migration +{" "}
-                <code className="rounded bg-muted px-1">python scripts/set_demo_passwords.py</code> on old DBs.
-              </p>
-              <p className="mt-3 text-xs font-semibold text-foreground">RBAC demo (password: demo)</p>
-              <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                {DEMO_RBAC_ACCOUNTS.map(({ email, label }) => (
-                  <li key={email}>
-                    <span className="text-foreground">{label}</span>:{" "}
-                    <code className="rounded bg-card px-1 font-mono text-[10px]">{email}</code>
-                  </li>
-                ))}
-              </ul>
+            <div className="mt-6 flex justify-center border-t border-border/60 pt-6">
+              <button
+                type="button"
+                onClick={() => setDemoModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm ring-offset-background transition hover:border-primary/40 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <KeyRound className="h-4 w-4 text-primary" strokeWidth={2} aria-hidden />
+                Demo credentials
+              </button>
             </div>
           </div>
         </section>
       </div>
+
+      {demoModalOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 p-4 backdrop-blur-[2px] sm:items-center"
+            role="presentation"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setDemoModalOpen(false);
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={demoTitleId}
+              className="relative flex max-h-[min(90vh,640px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-border bg-muted/40 px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                    <KeyRound className="h-5 w-5" strokeWidth={2} aria-hidden />
+                  </div>
+                  <div>
+                    <h2 id={demoTitleId} className="font-display text-lg font-bold tracking-tight text-foreground">
+                      Demo credentials
+                    </h2>
+                    <p className="text-xs text-muted-foreground">Seeded accounts for {APP_NAME}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDemoModalOpen(false)}
+                  className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 dark:border-primary/30 dark:bg-primary/10">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Quick sign-in</p>
+                  <dl className="mt-3 space-y-2 text-sm">
+                    <div>
+                      <dt className="text-xs font-medium text-muted-foreground">Email</dt>
+                      <dd className="mt-0.5">
+                        <code className="block rounded-lg bg-background px-3 py-2 font-mono text-sm text-foreground ring-1 ring-border">
+                          {DEMO_LOGIN_EMAIL}
+                        </code>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-medium text-muted-foreground">Password</dt>
+                      <dd className="mt-0.5">
+                        <code className="block rounded-lg bg-background px-3 py-2 font-mono text-sm text-foreground ring-1 ring-border">
+                          {DEMO_LOGIN_PASSWORD}
+                        </code>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="mt-5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    RBAC demo (password: {DEMO_LOGIN_PASSWORD})
+                  </p>
+                  <div className="mt-2 overflow-hidden rounded-xl border border-border">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/60">
+                          <th className="px-3 py-2 font-semibold text-foreground">Role</th>
+                          <th className="px-3 py-2 font-semibold text-foreground">Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {DEMO_RBAC_ACCOUNTS.map(({ email, label }) => (
+                          <tr key={email} className="border-b border-border last:border-0">
+                            <td className="px-3 py-2 text-foreground">{label}</td>
+                            <td className="px-3 py-2">
+                              <code className="font-mono text-xs text-muted-foreground">{email}</code>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+                  On older databases, run{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+                    python scripts/set_demo_passwords.py
+                  </code>{" "}
+                  from <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">backend/</code> so seeded
+                  users use the same password.
+                </p>
+              </div>
+
+              <div className="border-t border-border bg-muted/30 px-5 py-3">
+                <button
+                  type="button"
+                  onClick={() => setDemoModalOpen(false)}
+                  className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

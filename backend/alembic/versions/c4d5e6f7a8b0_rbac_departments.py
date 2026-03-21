@@ -84,7 +84,15 @@ def upgrade() -> None:
             "('director','vp','gm','manager','staff')"
         )
     )
-    op.execute(sa.text("UPDATE users SET department_id = 1 WHERE department_id IS NULL"))
+    # Use first department row (ids may not be 1 if AUTO_INCREMENT was advanced)
+    op.execute(
+        sa.text(
+            "UPDATE users u "
+            "JOIN (SELECT MIN(id) AS mid FROM departments) d "
+            "SET u.department_id = d.mid "
+            "WHERE u.department_id IS NULL"
+        )
+    )
 
 
 def downgrade() -> None:

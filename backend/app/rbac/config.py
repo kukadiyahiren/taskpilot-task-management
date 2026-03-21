@@ -20,6 +20,10 @@ DIRECT_PERMISSIONS: dict[str, frozenset[str]] = {
             "nav.my_tasks",
             "nav.notifications",
             "nav.account",
+            # Team section in sidebar (Members / Meetings / Files) — same routes; server still enforces data access
+            "nav.members",
+            "nav.meetings",
+            "nav.files",
             "tasks.read",
             "tasks.create",
             "route.dashboard.staff",

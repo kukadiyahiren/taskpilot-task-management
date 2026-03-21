@@ -1,3 +1,6 @@
+/** Product name — use in UI copy (browser title uses the same in index.html). */
+export const APP_NAME = "TaskPilot";
+
 /** Default demo workspace & board (seed data). */
 export const WORKSPACE_ID = 1;
 export const DEFAULT_BOARD_ID = 1;

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   useBoard,
   useDashboardStats,
@@ -29,7 +29,8 @@ import {
 } from "../hooks/useDashboardData.js";
 import { authMeQueryKey, useCurrentUser } from "../hooks/useCurrentUser.js";
 import { useWorkspaceNotifications } from "../hooks/useWorkspaceNotifications.js";
-import { DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
+import { AppLogo } from "./AppLogo.jsx";
+import { APP_NAME, DEFAULT_BOARD_ID, WORKSPACE_ID } from "../constants.js";
 import { FALLBACK_BOARD, FALLBACK_MEETINGS, FALLBACK_STATS } from "../lib/dashboardFallbacks.js";
 import { clearAccessToken } from "../lib/authStorage.js";
 import { resolveQueryData } from "../lib/resolveQueryData.js";
@@ -164,7 +165,9 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
   const statsRes = resolveQueryData(statsQ, FALLBACK_STATS);
   const meetingsRes = resolveQueryData(meetingsQ, FALLBACK_MEETINGS);
 
-  const taskBoardBadge = boardRes.data != null ? countBoardTasks(boardRes.data) : "—";
+  /** Real count from API; offline fallback must not show fake demo totals — use 0. */
+  const taskBoardBadge =
+    boardRes.data == null ? "—" : boardRes.isFallback ? 0 : countBoardTasks(boardRes.data);
   const myBadge = statsRes.data?.my_tasks ?? "—";
   const meetingsBadge = meetingsRes.data != null ? meetingsRes.data.length : "—";
   const { unreadCount: notificationUnread } = useWorkspaceNotifications();
@@ -174,14 +177,12 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
   const shell = (
     <>
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/30">
-            <LayoutGrid className="h-5 w-5" strokeWidth={2} />
-          </div>
+        <Link to="/" className="flex min-w-0 items-center gap-2 rounded-lg outline-none ring-offset-background transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+          <AppLogo variant="shell" />
           {!collapsed && (
-            <span className="truncate font-display text-lg font-bold tracking-tight text-foreground">TaskFlow</span>
+            <span className="truncate font-display text-lg font-bold tracking-tight text-foreground">{APP_NAME}</span>
           )}
-        </div>
+        </Link>
         <button
           type="button"
           onClick={onToggleCollapse}
