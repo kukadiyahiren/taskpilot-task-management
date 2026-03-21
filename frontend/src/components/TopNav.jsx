@@ -14,7 +14,7 @@ export default function TopNav({ onNewTask, onOpenMobileMenu, newTaskLoading = f
   const boardActive = pathname.startsWith("/board");
 
   return (
-    <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur-sm sm:gap-4 lg:px-6">
+    <header className="relative z-20 flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur-sm sm:gap-4 lg:px-6">
       <button
         type="button"
         className="inline-flex rounded-xl p-2 text-muted-foreground hover:bg-muted lg:hidden"
