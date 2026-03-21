@@ -15,3 +15,6 @@ __pycache__/
 # IDEs
 .idea/
 .vscode/
+
+# Uploaded meeting files
+uploads/
