@@ -9,7 +9,7 @@ body {
 .container {
     max-width: 1100px;
     margin: auto;
-    padding: 40px 20px;
+    /* padding: 40px 20px; */
 }
 
 /* Navbar */
@@ -34,7 +34,7 @@ nav a:hover {
 /* Header */
 header {
     text-align: center;
-    padding: 60px 20px;
+    /* padding: 60px 20px; */
 }
 
 h1 {
@@ -87,12 +87,20 @@ footer {
     margin-bottom: 30px;
 }
 
+.slider-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
 .slider {
     width: 100%;
     border-radius: 12px;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     overflow: hidden;
     position: relative;
+    background: #0f172a;
 }
 
 .slides {
@@ -101,36 +109,62 @@ footer {
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin; 
-    scrollbar-color: #3b82f6 #1e293b;
-    padding-bottom: 10px;
+    scrollbar-width: none;
+    /* Hide scrollbar for a cleaner slider look */
 }
 
 .slides::-webkit-scrollbar {
-    height: 8px;
-}
-
-.slides::-webkit-scrollbar-track {
-    background: #1e293b; 
-    border-radius: 4px;
-}
-
-.slides::-webkit-scrollbar-thumb {
-    background-color: #3b82f6; 
-    border-radius: 4px;
+    display: none;
 }
 
 .slide-item {
     flex: 0 0 100%;
     width: 100%;
+    aspect-ratio: 16 / 9;
     scroll-snap-align: start;
-    padding: 0 10px;
     box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .slide-item img {
     width: 100%;
-    height: auto;
-    border-radius: 8px;
+    height: 100%;
+    object-fit: cover;
     display: block;
+}
+
+/* Slider Controls */
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(30, 41, 59, 0.8);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.slider-btn:hover {
+    background: rgba(59, 130, 246, 0.9);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.prev-btn {
+    left: -25px;
+}
+
+.next-btn {
+    right: -25px;
 }

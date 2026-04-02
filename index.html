@@ -21,7 +21,7 @@
   <meta property="og:url" content="https://kukadiyahiren.github.io/taskpilot-task-management/" />
   <meta name="google-site-verification" content="s7ktm26srVVM55PH-4ky5W3G4HwfAiQpXri4iYDLopA" />
   <meta property="og:image" content="https://via.placeholder.com/1200x630.png?text=TaskPilot" />
-  <link rel="stylesheet" href="frontend/styles.css">
+  <link rel="stylesheet" href="frontend/styles.css?v=4">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -48,10 +48,39 @@
 
   <div class="container">
 
-    <!-- Hero -->
     <header>
       <h1>TaskPilot</h1>
       <p>Smart, scalable task management system</p>
+      <section class="portfolio-section" style="margin-top: 0; margin-bottom: 60px;">
+        <div class="slider-wrapper">
+          <button class="slider-btn prev-btn" onclick="moveSlide(-1)">&#10094;</button>
+          <div class="slider" id="portfolioSlider">
+            <div class="slides" id="portfolioSlides">
+              <div class="slide-item">
+                <img src="frontend/assets/TaskPilot-1.png" alt="TaskPilot Kanban Board">
+              </div>
+              <div class="slide-item">
+                <img src="frontend/assets/TaskPilot-2.png" alt="TaskPilot Analytics">
+              </div>
+              <div class="slide-item">
+                <img src="frontend/assets/TaskPilot-3.png" alt="TaskPilot List View">
+              </div>
+              <div class="slide-item">
+                <img src="frontend/assets/TaskPilot-4.png" alt="TaskPilot List View">
+              </div>
+              <div class="slide-item">
+                <img src="frontend/assets/TaskPilot-5.png" alt="TaskPilot List View">
+              </div>
+              <div class="slide-item">
+                <img src="frontend/assets/TaskPilot-6.png" alt="TaskPilot List View">
+              </div>
+            </div>
+          </div>
+          <button class="slider-btn next-btn" onclick="moveSlide(1)">&#10095;</button>
+        </div>
+        <p style="margin-top: 15px; color: #94a3b8; font-size: 0.9em;">Scroll horizontally to explore the platform
+          interface</p>
+      </section>
     </header>
 
     <!-- Features -->
@@ -77,34 +106,7 @@
       </div>
     </section>
 
-    <!-- Project Portfolio Slider -->
-    <section class="portfolio-section">
-      <h2>Project Portfolio</h2>
-      <div class="slider">
-        <div class="slides">
-          <div class="slide-item">
-            <img src="frontend/assets/TaskPilot-1.png" alt="TaskPilot Kanban Board">
-          </div>
-          <div class="slide-item">
-            <img src="frontend/assets/TaskPilot-2.png" alt="TaskPilot Analytics">
-          </div>
-          <div class="slide-item">
-            <img src="frontend/assets/TaskPilot-3.png" alt="TaskPilot List View">
-          </div>
-          <div class="slide-item">
-            <img src="frontend/assets/TaskPilot-4.png" alt="TaskPilot List View">
-          </div>
-          <div class="slide-item">
-            <img src="frontend/assets/TaskPilot-5.png" alt="TaskPilot List View">
-          </div>
-          <div class="slide-item">
-            <img src="frontend/assets/TaskPilot-6.png" alt="TaskPilot List View">
-          </div>
-        </div>
-      </div>
-      <p style="margin-top: 15px; color: #94a3b8; font-size: 0.9em;">Scroll horizontally to explore the platform
-        interface</p>
-    </section>
+
 
     <!-- Footer -->
     <footer>
@@ -113,6 +115,19 @@
 
   </div>
 
+  <script>
+    function moveSlide(direction) {
+      const slides = document.getElementById('portfolioSlides');
+      const slideItems = slides.getElementsByClassName('slide-item');
+      if (slideItems.length === 0) return;
+
+      const slideWidth = slideItems[0].clientWidth;
+      slides.scrollBy({
+        left: direction * slideWidth,
+        behavior: 'smooth'
+      });
+    }
+  </script>
 </body>
 
 </html>
