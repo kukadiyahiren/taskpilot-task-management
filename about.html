@@ -8,8 +8,8 @@
     <title>About TaskPilot</title>
 
     <meta name="description" content="About TaskPilot - A modern task management system built with Python and React.">
-
-    <link rel="stylesheet" href="frontend/styles.css">
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="stylesheet" href="frontend/styles.css?v=5">
 </head>
 
 <body>
@@ -29,31 +29,75 @@
 
     <div class="container">
 
-        <header>
-            <h1>About TaskPilot</h1>
-            <p>Smart, scalable task management system</p>
+        <header class="brutalist-hero animate-fade-up">
+            <h1 class="massive-text animate-fade-up delay-1">ABOUT US<span class="accent">.</span></h1>
+            <p class="subtitle animate-fade-up delay-2">BUILDING THE FUTURE OF PRODUCTIVITY.</p>
         </header>
 
-        <section class="features">
-            <div class="card">
-                <h3>🎯 Mission</h3>
+        <div class="divider animate-fade-up delay-3"></div>
+        
+    </div> <!-- Close container to allow full width marquee -->
+    <div class="marquee-wrapper animate-fade-up delay-3">
+        <div class="marquee-content">
+            <span>OUR STORY</span><span>•</span>
+            <span>NO COMPROMISES</span><span>•</span>
+            <span>PURE PERFORMANCE</span><span>•</span>
+            <span>OUR STORY</span><span>•</span>
+            <span>NO COMPROMISES</span><span>•</span>
+            <span>PURE PERFORMANCE</span><span>•</span>
+        </div>
+    </div>
+    <div class="container animate-fade-up delay-4" style="margin-top: 60px;">
+
+        <!-- Story Section -->
+        <section class="details-section" style="padding: 80px 0; display: flex; flex-wrap: wrap; gap: 40px; border-bottom: 1px solid var(--border-color); margin-bottom: 60px;">
+            <div style="flex: 1 1 400px;">
+                <h2 style="font-family: var(--font-heading); font-size: 48px; text-transform: uppercase; margin: 0 0 24px; line-height: 1;">Born from<br><span class="accent">frustration.</span></h2>
+                <p style="color: var(--text-secondary); font-size: 18px; margin-bottom: 30px;">Every task management tool felt bloated, slow, or just completely uninspired. We needed something that kept up with the pace of modern software engineering. Enter TaskPilot.</p>
+            </div>
+            <div style="flex: 1 1 400px; display: flex; flex-direction: column; gap: 20px;">
+                <div style="padding: 24px; border: 1px solid var(--border-color); border-left: 4px solid var(--accent-secondary); background: rgba(255,255,255,0.02);">
+                    <div style="font-family: var(--font-heading); margin-bottom: 8px;">2024 INCEPTION</div>
+                    <p style="margin: 0; color: var(--text-secondary);">Designed as an internal tool, grew into an open-source productivity beast.</p>
+                </div>
+                <div style="padding: 24px; border: 1px solid var(--border-color); border-left: 4px solid var(--accent); background: rgba(255,255,255,0.02);">
+                    <div style="font-family: var(--font-heading); margin-bottom: 8px;">OPEN ARCHITECTURE</div>
+                    <p style="margin: 0; color: var(--text-secondary);">We believe you should own your data. Our stack is transparent and fully extensible.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="features brutalist-features">
+            <div class="brutalist-card">
+                <div class="card-tag">MISSION</div>
+                <h3>SIMPLIFY WORK</h3>
                 <p>To simplify productivity with a clean and efficient workflow system.</p>
             </div>
 
-            <div class="card">
-                <h3>⚡ Tech Stack</h3>
+            <div class="brutalist-card">
+                <div class="card-tag">TECH</div>
+                <h3>FASTAPI + REACT</h3>
                 <p>Built using Python (FastAPI) and React for scalability and performance.</p>
             </div>
 
-            <div class="card">
-                <h3>🚀 Vision</h3>
+            <div class="brutalist-card">
+                <div class="card-tag">VISION</div>
+                <h3>AI EMPOWERED</h3>
                 <p>To become a powerful productivity platform with AI-driven insights.</p>
             </div>
 
-            <div class="card">
-                <h3>💡 Philosophy</h3>
+            <div class="brutalist-card">
+                <div class="card-tag">PHILOSOPHY</div>
+                <h3>LESS IS MORE</h3>
                 <p>Simple UI. High performance. Real productivity.</p>
             </div>
+        </section>
+
+        <!-- Call to Action -->
+        <section class="brutalist-hero animate-fade-up delay-4" style="padding: 120px 0;">
+            <p class="subtitle" style="margin-bottom: 20px;">JOIN THE MOVEMENT</p>
+            <h2 style="font-family: var(--font-heading); font-size: 8vw; line-height: 0.9; text-transform: uppercase; margin: 0 0 40px;">Contribute to<br><span class="accent">TaskPilot.</span></h2>
+            <a href="https://github.com/kukadiyahiren/taskpilot-task-management" style="display: inline-block; padding: 24px 48px; background: var(--accent); color: #111; text-transform: uppercase; font-family: var(--font-heading); text-decoration: none; font-size: 24px; letter-spacing: 2px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">View on GitHub</a>
         </section>
 
         <footer>

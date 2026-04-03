@@ -1,15 +1,101 @@
+/* Brutalist Style Variables */
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+    --bg-color: #111111;
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --accent: #FF5C00;
+    --accent-secondary: #00FF66;
+    --border-color: rgba(255, 255, 255, 0.15);
+    --font-heading: 'Oswald', sans-serif;
+    --font-body: 'Inter', sans-serif;
+}
+
 /* Global */
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: #fff;
+    font-family: var(--font-body);
+    background: var(--bg-color);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
 }
 
 .container {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: auto;
-    /* padding: 40px 20px; */
+    padding: 0 40px;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes marquee {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.animate-fade-up {
+    animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    opacity: 0;
+    /* Ensures it is hidden before JS triggers or animation starts */
+}
+
+.delay-1 {
+    animation-delay: 0.1s;
+}
+
+.delay-2 {
+    animation-delay: 0.2s;
+}
+
+.delay-3 {
+    animation-delay: 0.3s;
+}
+
+.delay-4 {
+    animation-delay: 0.4s;
+}
+
+/* Brutalist Marquee */
+.marquee-wrapper {
+    width: 100%;
+    overflow: hidden;
+    background: var(--accent);
+    color: #111111;
+    padding: 16px 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+    display: flex;
+}
+
+.marquee-content {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: flex;
+    animation: marquee 20s linear infinite;
+}
+
+.marquee-content span {
+    padding-right: 40px;
 }
 
 /* Navbar */
@@ -17,74 +103,149 @@ nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 24px 40px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 nav a {
-    color: #cbd5f5;
+    color: var(--text-primary);
     text-decoration: none;
-    margin-left: 20px;
-    font-size: 16px;
+    margin-left: 32px;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: color 0.2s ease;
 }
 
 nav a:hover {
-    color: #3b82f6;
+    color: var(--accent);
 }
 
-/* Header */
-header {
+nav strong {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    letter-spacing: 1px;
+}
+
+/* Brutalist Hero */
+.brutalist-hero {
     text-align: center;
-    /* padding: 60px 20px; */
+    padding: 20px 0 60px;
 }
 
-h1 {
-    font-size: 48px;
+.massive-text {
+    font-family: var(--font-heading);
+    font-size: 10vw;
+    line-height: 0.9;
+    margin: 0 0 24px;
+    text-transform: uppercase;
+    letter-spacing: -2px;
 }
 
-p {
-    color: #cbd5f5;
+.subtitle {
+    font-family: var(--font-body);
+    font-size: 20px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    margin-bottom: 60px;
 }
 
-/* Cards */
-.features {
+.accent {
+    color: var(--accent);
+}
+
+/* Dividers */
+.divider {
+    height: 1px;
+    background: var(--border-color);
+    width: 100%;
+    margin: 40px 0;
+}
+
+/* Brutalist Features / Cards */
+.brutalist-features {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0;
+    border-top: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
 }
 
-.card {
-    background: #1e293b;
-    padding: 20px;
-    border-radius: 12px;
+.brutalist-card {
+    padding: 40px;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    background: transparent;
+    position: relative;
 }
 
-/* Button */
-.btn {
-    display: inline-block;
-    margin-top: 20px;
-    padding: 12px 24px;
-    background: #3b82f6;
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
+.brutalist-card::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: 1px solid transparent;
+    z-index: -1;
+    transition: all 0.3s ease;
+}
+
+.brutalist-card:hover {
+    background: var(--accent);
+    transform: translate(-5px, -5px);
+    box-shadow: 10px 10px 0 #111111, 12px 12px 0 var(--accent-secondary);
+}
+
+.card-tag {
+    font-family: var(--font-heading);
+    color: var(--accent-secondary);
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+}
+
+.brutalist-card:hover .card-tag {
+    color: #111111;
+}
+
+.brutalist-card h3 {
+    font-family: var(--font-heading);
+    font-size: 32px;
+    margin: 0 0 16px 0;
+    line-height: 1.1;
+    letter-spacing: 1px;
+}
+
+.brutalist-card p {
+    font-family: var(--font-body);
+    color: var(--text-secondary);
+    font-size: 16px;
+    margin: 0;
+}
+
+.brutalist-card:hover h3,
+.brutalist-card:hover p {
+    color: #111111;
 }
 
 /* Footer */
 footer {
     text-align: center;
-    margin-top: 60px;
-    color: #94a3b8;
+    padding: 60px 0;
+    color: var(--text-secondary);
+    font-family: var(--font-heading);
+    letter-spacing: 2px;
+    font-size: 14px;
+    text-transform: uppercase;
 }
 
-/* Portfolio Slider */
+/* Portfolio Slider (Restyled for modern look) */
 .portfolio-section {
-    margin-top: 60px;
     text-align: center;
-}
-
-.portfolio-section h2 {
-    color: #f8fafc;
-    margin-bottom: 30px;
 }
 
 .slider-wrapper {
@@ -96,11 +257,10 @@ footer {
 
 .slider {
     width: 100%;
-    border-radius: 12px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     overflow: hidden;
     position: relative;
-    background: #0f172a;
+    background: #000;
+    border: 1px solid var(--border-color);
 }
 
 .slides {
@@ -110,7 +270,6 @@ footer {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    /* Hide scrollbar for a cleaner slider look */
 }
 
 .slides::-webkit-scrollbar {
@@ -133,6 +292,12 @@ footer {
     height: 100%;
     object-fit: cover;
     display: block;
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+}
+
+.slide-item img:hover {
+    opacity: 1;
 }
 
 /* Slider Controls */
@@ -140,25 +305,25 @@ footer {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(30, 41, 59, 0.8);
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
     width: 50px;
     height: 50px;
-    font-size: 20px;
+    font-family: var(--font-heading);
+    font-size: 24px;
     cursor: pointer;
     z-index: 10;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .slider-btn:hover {
-    background: rgba(59, 130, 246, 0.9);
-    transform: translateY(-50%) scale(1.05);
+    background: var(--accent);
+    color: #111111;
+    border-color: var(--accent);
 }
 
 .prev-btn {
@@ -167,4 +332,28 @@ footer {
 
 .next-btn {
     right: -25px;
+}
+
+@media (max-width: 768px) {
+    .massive-text {
+        font-size: 15vw;
+    }
+
+    .prev-btn {
+        left: 0;
+    }
+
+    .next-btn {
+        right: 0;
+    }
+
+    .nav {
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    .nav a {
+        margin-left: 10px;
+        margin-right: 10px;
+    }
 }
