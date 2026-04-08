@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://kukadiyahiren.github.io/taskpilot-task-management/sitemap.xml
