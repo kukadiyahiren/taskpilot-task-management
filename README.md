@@ -2,6 +2,7 @@
 
 Full-stack Kanban / dashboard app: **Python FastAPI** API with **Alembic** migrations, **React (Vite)** UI with **Tailwind CSS** and **@hello-pangea/dnd** drag-and-drop.
 
+- **Overview**: [DEMO](https://kukadiyahiren.github.io/taskpilot-task-management/)
 ## Backend
 
 ```bash
