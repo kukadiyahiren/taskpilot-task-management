@@ -173,3 +173,5 @@ alembic upgrade head
 - **MySQL 8** via **PyMySQL**; connection is built from **`MYSQL_*`** in `.env`, or set **`DATABASE_URL`** to override (e.g. SQLite file).
 - **Zustand** for board + modal state; **React Router** for pages.
 - Demo **user id `1`** (Jamie) is used for comments and activity when posting from the API (no JWT in this scaffold).
+
+- https://kukadiyahiren.github.io/taskpilot-task-management/
